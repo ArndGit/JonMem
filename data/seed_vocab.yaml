@@ -1,0 +1,153 @@
+﻿meta:
+  source_lang: de
+  target_langs:
+    - en
+  topic: Uhrzeit
+  note: "Seed vocabulary for testing"
+
+topics:
+  - id: time
+    name: Uhrzeit
+    lang: en
+
+cards:
+  - id: time_001_en
+    topic: time
+    lang: en
+    de: "die Uhr"
+    en: "the clock"
+    hint_de_to_en: "Es zeigt die Zeit."
+    hint_en_to_de: "Das Gerät an der Wand."
+  - id: time_002_en
+    topic: time
+    lang: en
+    de: "die Uhrzeit"
+    en: "the time"
+    hint_de_to_en: "Nicht das Gerät, sondern die Zeit."
+    hint_en_to_de: "Wie spät es ist."
+  - id: time_003_en
+    topic: time
+    lang: en
+    de: "die Minute"
+    en: "the minute"
+    hint_de_to_en: "60 Sekunden."
+    hint_en_to_de: "Kleiner als eine Stunde."
+  - id: time_004_en
+    topic: time
+    lang: en
+    de: "die Stunde"
+    en: "the hour"
+    hint_de_to_en: "60 Minuten."
+    hint_en_to_de: "Größer als eine Minute."
+  - id: time_005_en
+    topic: time
+    lang: en
+    de: "morgens"
+    en: "in the morning"
+    hint_de_to_en: "Vor dem Mittag."
+    hint_en_to_de: "Der Tag beginnt."
+  - id: time_006_en
+    topic: time
+    lang: en
+    de: "abends"
+    en: "in the evening"
+    hint_de_to_en: "Nach dem Nachmittag."
+    hint_en_to_de: "Der Tag endet."
+  - id: time_007_en
+    topic: time
+    lang: en
+    de: "mittags"
+    en: "at noon"
+    hint_de_to_en: "12 Uhr."
+    hint_en_to_de: "Die Mitte des Tages."
+  - id: time_008_en
+    topic: time
+    lang: en
+    de: "nachts"
+    en: "at night"
+    hint_de_to_en: "Wenn es dunkel ist."
+    hint_en_to_de: "Die späte Zeit."
+  - id: time_009_en
+    topic: time
+    lang: en
+    de: "jetzt"
+    en: "now"
+    hint_de_to_en: "In diesem Moment."
+    hint_en_to_de: "Sofort."
+  - id: time_010_en
+    topic: time
+    lang: en
+    de: "später"
+    en: "later"
+    hint_de_to_en: "Nicht jetzt."
+    hint_en_to_de: "Nicht sofort."
+  - id: time_011_en
+    topic: time
+    lang: en
+    de: "früh"
+    en: "early"
+    hint_de_to_en: "Vor der Zeit."
+    hint_en_to_de: "Nicht spät."
+  - id: time_012_en
+    topic: time
+    lang: en
+    de: "spät"
+    en: "late"
+    hint_de_to_en: "Nicht früh."
+    hint_en_to_de: "Nach der Zeit."
+  - id: time_013_en
+    topic: time
+    lang: en
+    de: "heute"
+    en: "today"
+    hint_de_to_en: "Dieser Tag."
+    hint_en_to_de: "Nicht gestern."
+  - id: time_014_en
+    topic: time
+    lang: en
+    de: "morgen"
+    en: "tomorrow"
+    hint_de_to_en: "Der Tag nach heute."
+    hint_en_to_de: "Nicht gestern."
+  - id: time_015_en
+    topic: time
+    lang: en
+    de: "gestern"
+    en: "yesterday"
+    hint_de_to_en: "Der Tag vor heute."
+    hint_en_to_de: "Nicht morgen."
+  - id: time_016_en
+    topic: time
+    lang: en
+    de: "gleich"
+    en: "soon"
+    hint_de_to_en: "In kurzer Zeit."
+    hint_en_to_de: "Nicht später."
+  - id: time_017_en
+    topic: time
+    lang: en
+    de: "viertel nach"
+    en: "quarter past"
+    hint_de_to_en: "15 Minuten nach der Stunde."
+    hint_en_to_de: "15 Minuten nach."
+  - id: time_018_en
+    topic: time
+    lang: en
+    de: "halb"
+    en: "half past"
+    hint_de_to_en: "30 Minuten nach."
+    hint_en_to_de: "Die Hälfte der Stunde ist vorbei."
+  - id: time_019_en
+    topic: time
+    lang: en
+    de: "viertel vor"
+    en: "quarter to"
+    hint_de_to_en: "15 Minuten vor der Stunde."
+    hint_en_to_de: "15 Minuten vor."
+  - id: time_020_en
+    topic: time
+    lang: en
+    de: "wann?"
+    en: "when?"
+    hint_de_to_en: "Frage nach Zeit."
+    hint_en_to_de: "Eine Frage nach dem Zeitpunkt."
