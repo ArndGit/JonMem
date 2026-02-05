@@ -52,12 +52,18 @@ MAX_STAGE = 4
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
-INPUT_HEIGHT = 64
-BUTTON_HEIGHT = 56
-INPUT_FONT_SIZE = 22
-BUTTON_FONT_SIZE = 22
-SPINNER_FONT_SIZE = 22
-LABEL_FONT_SIZE = 20
+INPUT_HEIGHT = 72
+BUTTON_HEIGHT = 64
+INPUT_FONT_SIZE = 26
+BUTTON_FONT_SIZE = 26
+SPINNER_FONT_SIZE = 26
+LABEL_FONT_SIZE = 24
+TEXT_COLOR = (0.12, 0.1, 0.08, 1)
+SURFACE_BG = (0.98, 0.96, 0.93, 1)
+CARD_BG = (0.94, 0.92, 0.88, 1)
+CARD_BORDER = (0.72, 0.68, 0.63, 1)
+INPUT_BG = (1, 1, 1, 1)
+BUTTON_BG = (0.86, 0.83, 0.78, 1)
 CARD_HEIGHT = 68
 CALENDAR_CELL_HEIGHT = 70
 
@@ -157,19 +163,20 @@ class TopBar(BoxLayout):
         self.app = app
         self.add_widget(Button(text="≡", size_hint_x=None, width=BUTTON_HEIGHT,
                                on_release=self.app.open_menu))
-        self.add_widget(Label(text=title, font_size=LABEL_FONT_SIZE + 2))
+        self.add_widget(Label(text=title, font_size=LABEL_FONT_SIZE + 4, color=TEXT_COLOR))
 
 
 class CardRow(BoxLayout):
     def __init__(self, text: str, **kwargs):
         super().__init__(orientation="vertical", size_hint_y=None, height=CARD_HEIGHT, padding=10, **kwargs)
         with self.canvas.before:
-            Color(0.96, 0.95, 0.92, 1)
+            Color(*CARD_BG)
             self._bg = RoundedRectangle(radius=[10], pos=self.pos, size=self.size)
-            Color(0.75, 0.72, 0.68, 1)
+            Color(*CARD_BORDER)
             self._border = Line(rounded_rectangle=[self.x, self.y, self.width, self.height, 10])
         self.bind(pos=self._update_canvas, size=self._update_canvas)
-        label = Label(text=text, halign="left", valign="middle", font_size=LABEL_FONT_SIZE)
+        label = Label(text=text, halign="left", valign="middle",
+                      font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
         label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.add_widget(label)
 
@@ -184,12 +191,12 @@ class VocabRow(BoxLayout):
         super().__init__(orientation="horizontal", size_hint_y=None, height=CARD_HEIGHT,
                          padding=6, spacing=6, **kwargs)
         label = Label(text=f"{card.get('de', '')} — {card.get('en', '')}",
-                      halign="left", valign="middle", font_size=LABEL_FONT_SIZE)
+                      halign="left", valign="middle", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
         label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.add_widget(label)
-        self.add_widget(Button(text="Bearbeiten", size_hint_x=None, width=140,
+        self.add_widget(Button(text="Bearbeiten", size_hint_x=None, width=160,
                                on_release=lambda *_: on_edit(card)))
-        self.add_widget(Button(text="Löschen", size_hint_x=None, width=110,
+        self.add_widget(Button(text="Löschen", size_hint_x=None, width=130,
                                on_release=lambda *_: on_delete(card)))
 
 
@@ -331,7 +338,7 @@ class VocabScreen(Screen):
 
     def _build_step_topic(self) -> None:
         body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        self.lang_label = Label(text="", font_size=LABEL_FONT_SIZE)
+        self.lang_label = Label(text="", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
         body.add_widget(self.lang_label)
         body.add_widget(Label(text="2. Thema wählen oder anlegen", font_size=LABEL_FONT_SIZE))
         self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT,
@@ -349,7 +356,7 @@ class VocabScreen(Screen):
 
     def _build_step_list(self) -> None:
         body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        self.topic_label = Label(text="", font_size=LABEL_FONT_SIZE)
+        self.topic_label = Label(text="", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
         body.add_widget(self.topic_label)
         self.cards_layout = BoxLayout(orientation="vertical", spacing=6, size_hint_y=None)
         self.cards_layout.bind(minimum_height=self.cards_layout.setter("height"))
@@ -539,10 +546,21 @@ class JonMemApp(App):
         Button.font_size = BUTTON_FONT_SIZE
         ToggleButton.font_size = BUTTON_FONT_SIZE
         Spinner.font_size = SPINNER_FONT_SIZE
+        Label.font_size = LABEL_FONT_SIZE
+        Label.color = TEXT_COLOR
+        TextInput.font_size = INPUT_FONT_SIZE
+        TextInput.foreground_color = TEXT_COLOR
+        TextInput.background_color = INPUT_BG
+        Button.color = TEXT_COLOR
+        Button.background_normal = ""
+        Button.background_color = BUTTON_BG
+        Spinner.color = TEXT_COLOR
+        Spinner.background_normal = ""
+        Spinner.background_color = BUTTON_BG
         if IS_ANDROID:
             Window.softinput_mode = "resize"
         Window.bind(on_focus=self._on_window_focus)
-        Window.clearcolor = (0.98, 0.97, 0.95, 1)
+        Window.clearcolor = SURFACE_BG
 
         self.data_dir = self.user_data_dir
         os.makedirs(self.data_dir, exist_ok=True)
