@@ -52,20 +52,20 @@ MAX_STAGE = 4
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
-INPUT_HEIGHT = 72
-BUTTON_HEIGHT = 64
-INPUT_FONT_SIZE = 26
-BUTTON_FONT_SIZE = 26
-SPINNER_FONT_SIZE = 26
-LABEL_FONT_SIZE = 24
+BASE_INPUT_HEIGHT = 72
+BASE_BUTTON_HEIGHT = 64
+BASE_INPUT_FONT_SIZE = 26
+BASE_BUTTON_FONT_SIZE = 26
+BASE_SPINNER_FONT_SIZE = 26
+BASE_LABEL_FONT_SIZE = 24
 TEXT_COLOR = (0.12, 0.1, 0.08, 1)
 SURFACE_BG = (0.98, 0.96, 0.93, 1)
 CARD_BG = (0.94, 0.92, 0.88, 1)
 CARD_BORDER = (0.72, 0.68, 0.63, 1)
 INPUT_BG = (1, 1, 1, 1)
 BUTTON_BG = (0.86, 0.83, 0.78, 1)
-CARD_HEIGHT = 68
-CALENDAR_CELL_HEIGHT = 70
+BASE_CARD_HEIGHT = 68
+BASE_CALENDAR_CELL_HEIGHT = 70
 
 try:
     from plyer import filechooser  # type: ignore
@@ -73,11 +73,59 @@ except Exception:
     filechooser = None
 
 
+def _ui_scale() -> float:
+    short_edge = min(Window.width or 0, Window.height or 0)
+    if short_edge <= 0:
+        return 1.0
+    scale = short_edge / 720.0
+    return max(0.85, min(1.6, scale))
+
+
+def _ui(value: float) -> float:
+    return max(1.0, value * _ui_scale())
+
+
+def _scroll_to_widget(widget) -> None:
+    parent = widget.parent
+    while parent is not None:
+        if isinstance(parent, ScrollView):
+            parent.scroll_to(widget, padding=_ui(12))
+            break
+        parent = parent.parent
+
+
 def _styled_text_input(**kwargs) -> TextInput:
-    kwargs.setdefault("font_size", INPUT_FONT_SIZE)
+    kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
-    return TextInput(**kwargs)
+    text_input = TextInput(**kwargs)
+    text_input.bind(focus=lambda w, focused: _scroll_to_widget(w) if focused else None)
+    return text_input
+
+
+def _styled_label(text: str, **kwargs) -> Label:
+    kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
+    kwargs.setdefault("color", TEXT_COLOR)
+    label = Label(text=text, **kwargs)
+    label.size_hint_y = None
+    label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", (lbl.width, None)))
+    label.bind(texture_size=lambda lbl, size: setattr(lbl, "height", size[1] + _ui(6)))
+    return label
+
+
+def _make_scrollable(container: BoxLayout) -> ScrollView:
+    container.size_hint_y = None
+    container.bind(minimum_height=container.setter("height"))
+    scroll = ScrollView(size_hint=(1, 1), do_scroll_x=False)
+    scroll.add_widget(container)
+    return scroll
+
+
+def _styled_popup(**kwargs) -> Popup:
+    kwargs.setdefault("background", "")
+    kwargs.setdefault("background_color", SURFACE_BG)
+    kwargs.setdefault("separator_color", CARD_BORDER)
+    return Popup(**kwargs)
 
 
 def _read_text(path: str) -> str:
@@ -166,16 +214,16 @@ def _ensure_beep(path: str) -> None:
 
 class TopBar(BoxLayout):
     def __init__(self, app, title: str, **kwargs):
-        super().__init__(orientation="horizontal", size_hint_y=None, height=BUTTON_HEIGHT, **kwargs)
+        super().__init__(orientation="horizontal", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), **kwargs)
         self.app = app
-        self.add_widget(Button(text="≡", size_hint_x=None, width=BUTTON_HEIGHT,
+        self.add_widget(Button(text="≡", size_hint_x=None, width=_ui(BASE_BUTTON_HEIGHT),
                                on_release=self.app.open_menu))
-        self.add_widget(Label(text=title, font_size=LABEL_FONT_SIZE + 4, color=TEXT_COLOR))
+        self.add_widget(Label(text=title, font_size=_ui(BASE_LABEL_FONT_SIZE + 4), color=TEXT_COLOR))
 
 
 class CardRow(BoxLayout):
     def __init__(self, text: str, **kwargs):
-        super().__init__(orientation="vertical", size_hint_y=None, height=CARD_HEIGHT, padding=10, **kwargs)
+        super().__init__(orientation="vertical", size_hint_y=None, height=_ui(BASE_CARD_HEIGHT), padding=10, **kwargs)
         with self.canvas.before:
             Color(*CARD_BG)
             self._bg = RoundedRectangle(radius=[10], pos=self.pos, size=self.size)
@@ -183,7 +231,7 @@ class CardRow(BoxLayout):
             self._border = Line(rounded_rectangle=[self.x, self.y, self.width, self.height, 10])
         self.bind(pos=self._update_canvas, size=self._update_canvas)
         label = Label(text=text, halign="left", valign="middle",
-                      font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
+                      font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR)
         label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.add_widget(label)
 
@@ -195,22 +243,22 @@ class CardRow(BoxLayout):
 
 class VocabRow(BoxLayout):
     def __init__(self, card: dict, on_edit, on_delete, **kwargs):
-        super().__init__(orientation="horizontal", size_hint_y=None, height=CARD_HEIGHT,
+        super().__init__(orientation="horizontal", size_hint_y=None, height=_ui(BASE_CARD_HEIGHT),
                          padding=6, spacing=6, **kwargs)
         label = Label(text=f"{card.get('de', '')} — {card.get('en', '')}",
-                      halign="left", valign="middle", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
+                      halign="left", valign="middle", font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR)
         label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.add_widget(label)
-        self.add_widget(Button(text="Bearbeiten", size_hint_x=None, width=160,
+        self.add_widget(Button(text="Bearbeiten", size_hint_x=None, width=_ui(160),
                                on_release=lambda *_: on_edit(card)))
-        self.add_widget(Button(text="Löschen", size_hint_x=None, width=130,
+        self.add_widget(Button(text="Löschen", size_hint_x=None, width=_ui(130),
                                on_release=lambda *_: on_delete(card)))
 
 
 class CalendarCell(BoxLayout):
     def __init__(self, day_text: str, count_text: str, **kwargs):
-        super().__init__(orientation="vertical", size_hint_y=None, height=CALENDAR_CELL_HEIGHT, padding=4, **kwargs)
-        self.add_widget(Label(text=day_text, size_hint_y=None, height=24))
+        super().__init__(orientation="vertical", size_hint_y=None, height=_ui(BASE_CALENDAR_CELL_HEIGHT), padding=4, **kwargs)
+        self.add_widget(Label(text=day_text, size_hint_y=None, height=_ui(24)))
         self.add_widget(Label(text=count_text))
 
 
