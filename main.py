@@ -73,6 +73,13 @@ except Exception:
     filechooser = None
 
 
+def _styled_text_input(**kwargs) -> TextInput:
+    kwargs.setdefault("font_size", INPUT_FONT_SIZE)
+    kwargs.setdefault("foreground_color", TEXT_COLOR)
+    kwargs.setdefault("background_color", INPUT_BG)
+    return TextInput(**kwargs)
+
+
 def _read_text(path: str) -> str:
     with open(path, "r", encoding="utf-8", errors="replace") as handle:
         return handle.read()
@@ -272,7 +279,7 @@ class TrainingScreen(Screen):
         body.add_widget(self.timer_label)
         self.prompt_label = Label(text="")
         body.add_widget(self.prompt_label)
-        self.answer_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
         body.add_widget(self.answer_input)
         self.feedback_label = Label(text="")
         body.add_widget(self.feedback_label)
@@ -327,8 +334,8 @@ class VocabScreen(Screen):
                                     font_size=SPINNER_FONT_SIZE)
         body.add_widget(self.lang_spinner)
         body.add_widget(Label(text="Neue Zielsprache (optional)", font_size=LABEL_FONT_SIZE))
-        self.new_lang_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
-                                        font_size=INPUT_FONT_SIZE, hint_text="z.B. en, fr")
+        self.new_lang_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+                                                 hint_text="z.B. en, fr")
         body.add_widget(self.new_lang_input)
         btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
         btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_language()))
@@ -345,8 +352,8 @@ class VocabScreen(Screen):
                                      font_size=SPINNER_FONT_SIZE)
         body.add_widget(self.topic_spinner)
         body.add_widget(Label(text="Neues Thema (optional)", font_size=LABEL_FONT_SIZE))
-        self.topic_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
-                                     font_size=INPUT_FONT_SIZE, hint_text="z.B. Reisen")
+        self.topic_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+                                              hint_text="z.B. Reisen")
         body.add_widget(self.topic_input)
         btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
         btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_topic()))
@@ -431,16 +438,16 @@ class VocabScreen(Screen):
         title = "Vokabel bearbeiten" if card else "Neue Vokabel"
         box = BoxLayout(orientation="vertical", spacing=8, padding=8)
         box.add_widget(Label(text="Deutsch", font_size=LABEL_FONT_SIZE))
-        de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        de_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
         box.add_widget(de_input)
         box.add_widget(Label(text="Zielsprache", font_size=LABEL_FONT_SIZE))
-        en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        en_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
         box.add_widget(en_input)
         box.add_widget(Label(text="Eselsbrücke DE → EN", font_size=LABEL_FONT_SIZE))
-        hint_de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        hint_de_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
         box.add_widget(hint_de_input)
         box.add_widget(Label(text="Eselsbrücke EN → DE", font_size=LABEL_FONT_SIZE))
-        hint_en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        hint_en_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
         box.add_widget(hint_en_input)
 
         if card:
@@ -548,9 +555,6 @@ class JonMemApp(App):
         Spinner.font_size = SPINNER_FONT_SIZE
         Label.font_size = LABEL_FONT_SIZE
         Label.color = TEXT_COLOR
-        TextInput.font_size = INPUT_FONT_SIZE
-        TextInput.foreground_color = TEXT_COLOR
-        TextInput.background_color = INPUT_BG
         Button.color = TEXT_COLOR
         Button.background_normal = ""
         Button.background_color = BUTTON_BG
@@ -739,7 +743,7 @@ class JonMemApp(App):
         except Exception as exc:
             text = f"License not available: {exc}"
         box = BoxLayout(orientation="vertical", spacing=6, padding=6)
-        box.add_widget(TextInput(text=text, readonly=True))
+        box.add_widget(_styled_text_input(text=text, readonly=True))
         box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
                               on_release=lambda *_: popup.dismiss()))
         popup = Popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
@@ -769,7 +773,7 @@ class JonMemApp(App):
         default_path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
         box = BoxLayout(orientation="vertical", spacing=6, padding=8)
         box.add_widget(Label(text="Pfad für Exportdatei"))
-        path_input = TextInput(multiline=False, text=default_path, font_size=INPUT_FONT_SIZE)
+        path_input = _styled_text_input(multiline=False, text=default_path)
         box.add_widget(path_input)
 
         def do_export(_):
@@ -816,7 +820,7 @@ class JonMemApp(App):
 
         box = BoxLayout(orientation="vertical", spacing=6, padding=8)
         box.add_widget(Label(text="Pfad zur YAML-Datei"))
-        path_input = TextInput(multiline=False, text="", font_size=INPUT_FONT_SIZE)
+        path_input = _styled_text_input(multiline=False, text="")
         box.add_widget(path_input)
 
         def do_import(_):
@@ -855,7 +859,7 @@ class JonMemApp(App):
         if self._last_exception:
             lines.append("\nLast exception:\n" + self._last_exception)
         box = BoxLayout(orientation="vertical", spacing=6, padding=6)
-        box.add_widget(TextInput(text="\n".join(lines), readonly=True))
+        box.add_widget(_styled_text_input(text="\n".join(lines), readonly=True))
         box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
                               on_release=lambda *_: popup.dismiss()))
         popup = Popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
