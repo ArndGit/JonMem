@@ -25,6 +25,8 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
+from kivy.uix.togglebutton import ToggleButton
+from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.utils import platform as kivy_platform
 
 try:
@@ -48,6 +50,17 @@ SESSION_SECONDS = 300
 MAX_STAGE = 4
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
+
+INPUT_HEIGHT = 50
+BUTTON_HEIGHT = 48
+INPUT_FONT_SIZE = 18
+CARD_HEIGHT = 58
+CALENDAR_CELL_HEIGHT = 70
+
+try:
+    from plyer import filechooser  # type: ignore
+except Exception:
+    filechooser = None
 
 
 def _read_text(path: str) -> str:
@@ -142,6 +155,30 @@ class TopBar(BoxLayout):
         self.add_widget(Label(text=title))
 
 
+class CardRow(BoxLayout):
+    def __init__(self, text: str, **kwargs):
+        super().__init__(orientation="vertical", size_hint_y=None, height=CARD_HEIGHT, padding=10, **kwargs)
+        with self.canvas.before:
+            Color(0.96, 0.95, 0.92, 1)
+            self._bg = RoundedRectangle(radius=[10], pos=self.pos, size=self.size)
+            Color(0.75, 0.72, 0.68, 1)
+            self._border = Line(rounded_rectangle=[self.x, self.y, self.width, self.height, 10])
+        self.bind(pos=self._update_canvas, size=self._update_canvas)
+        self.add_widget(Label(text=text, halign="left", valign="middle"))
+
+    def _update_canvas(self, *_):
+        self._bg.pos = self.pos
+        self._bg.size = self.size
+        self._border.rounded_rectangle = [self.x, self.y, self.width, self.height, 10]
+
+
+class CalendarCell(BoxLayout):
+    def __init__(self, day_text: str, count_text: str, **kwargs):
+        super().__init__(orientation="vertical", size_hint_y=None, height=CALENDAR_CELL_HEIGHT, padding=4, **kwargs)
+        self.add_widget(Label(text=day_text, size_hint_y=None, height=24))
+        self.add_widget(Label(text=count_text))
+
+
 class MenuScreen(Screen):
     def __init__(self, app, **kwargs):
         super().__init__(**kwargs)
@@ -163,20 +200,30 @@ class TrainingSetupScreen(Screen):
         layout.add_widget(TopBar(app, "Training"))
         body = BoxLayout(orientation="vertical", padding=16, spacing=12)
         body.add_widget(Label(text="Modus"))
-        btn_row = BoxLayout(size_hint_y=None, height=44, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
         btn_row.add_widget(Button(text="Einführen", on_release=lambda *_: self._start("introduce")))
         btn_row.add_widget(Button(text="Wiederholen", on_release=lambda *_: self._start("review")))
         body.add_widget(btn_row)
         body.add_widget(Label(text="Richtung"))
-        dir_row = BoxLayout(size_hint_y=None, height=44, spacing=8)
-        dir_row.add_widget(Button(text="DE → EN", on_release=lambda *_: self._set_dir("de_to_en")))
-        dir_row.add_widget(Button(text="EN → DE", on_release=lambda *_: self._set_dir("en_to_de")))
+        dir_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        self.dir_de = ToggleButton(text="DE → EN", group="direction", state="down")
+        self.dir_en = ToggleButton(text="EN → DE", group="direction")
+        self.dir_de.bind(state=lambda btn, state: self._toggle_dir(btn, state, "de_to_en"))
+        self.dir_en.bind(state=lambda btn, state: self._toggle_dir(btn, state, "en_to_de"))
+        dir_row.add_widget(self.dir_de)
+        dir_row.add_widget(self.dir_en)
         body.add_widget(dir_row)
         self.dir_label = Label(text="Aktuell: DE → EN")
         body.add_widget(self.dir_label)
+        body.add_widget(Button(text="Zurück", size_hint_y=None, height=BUTTON_HEIGHT,
+                               on_release=lambda *_: self.app.show_menu()))
         layout.add_widget(body)
         self.add_widget(layout)
         self._direction = "de_to_en"
+
+    def _toggle_dir(self, _btn, state: str, direction: str) -> None:
+        if state == "down":
+            self._set_dir(direction)
 
     def _set_dir(self, direction: str) -> None:
         self._direction = direction
@@ -197,12 +244,13 @@ class TrainingScreen(Screen):
         body.add_widget(self.timer_label)
         self.prompt_label = Label(text="")
         body.add_widget(self.prompt_label)
-        self.answer_input = TextInput(multiline=False, size_hint_y=None, height=44)
+        self.answer_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.answer_input)
         self.feedback_label = Label(text="")
         body.add_widget(self.feedback_label)
-        btn_row = BoxLayout(size_hint_y=None, height=44, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
         btn_row.add_widget(Button(text="OK", on_release=lambda *_: self.submit()))
+        btn_row.add_widget(Button(text="Pyramide", on_release=lambda *_: self.app.show_session_pyramid()))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: self.app.end_training(cancelled=True)))
         body.add_widget(btn_row)
         layout.add_widget(body)
@@ -226,17 +274,17 @@ class VocabScreen(Screen):
         body = BoxLayout(orientation="vertical", padding=16, spacing=8)
 
         body.add_widget(Label(text="Sprache"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=40)
+        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT)
         self.lang_spinner.bind(text=lambda *_: self._refresh_topics())
         body.add_widget(self.lang_spinner)
 
         body.add_widget(Label(text="Thema"))
-        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=40)
+        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT)
         self.topic_spinner.bind(text=lambda *_: self._refresh_cards())
         body.add_widget(self.topic_spinner)
 
         body.add_widget(Label(text="Neues Thema (optional)"))
-        self.topic_input = TextInput(multiline=False, size_hint_y=None, height=40)
+        self.topic_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.topic_input)
 
         self.cards_label = Label(text="Vorhandene Vokabeln", size_hint_y=None, height=24)
@@ -248,18 +296,21 @@ class VocabScreen(Screen):
         body.add_widget(cards_scroll)
 
         body.add_widget(Label(text="Deutsch"))
-        self.de_input = TextInput(multiline=False, size_hint_y=None, height=40)
+        self.de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.de_input)
         body.add_widget(Label(text="Zielsprache"))
-        self.en_input = TextInput(multiline=False, size_hint_y=None, height=40)
+        self.en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.en_input)
         body.add_widget(Label(text="Eselsbrücke DE → EN"))
-        self.hint_de_input = TextInput(multiline=False, size_hint_y=None, height=40)
+        self.hint_de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.hint_de_input)
         body.add_widget(Label(text="Eselsbrücke EN → DE"))
-        self.hint_en_input = TextInput(multiline=False, size_hint_y=None, height=40)
+        self.hint_en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
         body.add_widget(self.hint_en_input)
-        body.add_widget(Button(text="Speichern", size_hint_y=None, height=44, on_release=lambda *_: self._save()))
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Speichern", on_release=lambda *_: self._save()))
+        btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self.app.show_menu()))
+        body.add_widget(btn_row)
         layout.add_widget(body)
         self.add_widget(layout)
 
@@ -285,7 +336,7 @@ class VocabScreen(Screen):
         lang = self.lang_spinner.text
         topic_name = self.topic_spinner.text
         for card in self.app.get_cards_for_topic(lang, topic_name):
-            self.cards_layout.add_widget(Label(text=f"{card['de']} — {card['en']}", size_hint_y=None, height=22))
+            self.cards_layout.add_widget(CardRow(text=f"{card['de']} — {card['en']}"))
 
     def _save(self) -> None:
         lang = self.lang_spinner.text
@@ -312,11 +363,16 @@ class CalendarScreen(Screen):
         self.body = BoxLayout(orientation="vertical", padding=16, spacing=8)
         self.month_label = Label(text="")
         self.body.add_widget(self.month_label)
-        self.grid = GridLayout(cols=7, spacing=4, size_hint_y=None)
+        self.header_grid = GridLayout(cols=7, spacing=4, size_hint_y=None, height=24)
+        self.grid = GridLayout(cols=7, spacing=4, size_hint_y=None, row_force_default=True,
+                               row_default_height=CALENDAR_CELL_HEIGHT)
         self.grid.bind(minimum_height=self.grid.setter("height"))
+        self.body.add_widget(self.header_grid)
         scroll = ScrollView()
         scroll.add_widget(self.grid)
         self.body.add_widget(scroll)
+        self.body.add_widget(Button(text="Zurück", size_hint_y=None, height=BUTTON_HEIGHT,
+                                    on_release=lambda *_: app.show_menu()))
         layout.add_widget(self.body)
         self.add_widget(layout)
 
@@ -325,24 +381,25 @@ class CalendarScreen(Screen):
 
     def _build_month(self):
         self.grid.clear_widgets()
+        self.header_grid.clear_widgets()
         now = datetime.now()
         self.month_label.text = now.strftime("%B %Y")
         counts = self.app.training_counts_by_day()
 
         weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
         for wd in weekdays:
-            self.grid.add_widget(Label(text=wd, bold=True))
+            self.header_grid.add_widget(Label(text=wd, bold=True))
 
         cal = calendar.Calendar(firstweekday=0)
         for day in cal.itermonthdates(now.year, now.month):
             if day.month != now.month:
-                self.grid.add_widget(Label(text=""))
+                self.grid.add_widget(CalendarCell("", ""))
                 continue
             key = day.isoformat()
             count = counts.get(key, 0)
             marker = "★" if count > 0 else ""
-            label = f"{day.day}\n{marker}{count if count > 0 else ''}"
-            self.grid.add_widget(Label(text=label))
+            count_text = f"{marker}{count}" if count > 0 else ""
+            self.grid.add_widget(CalendarCell(str(day.day), count_text))
 
 
 class JonMemApp(App):
@@ -466,12 +523,15 @@ class JonMemApp(App):
     def show_calendar(self) -> None:
         self.sm.current = "calendar"
 
+    def show_menu(self) -> None:
+        self.sm.current = "menu"
+
     def open_menu(self, *_):
         layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
         layout.add_widget(Button(text="Lizenz", size_hint_y=None, height=40, on_release=lambda *_: self._show_license()))
         layout.add_widget(Button(text="Unterstütze mich", size_hint_y=None, height=40, on_release=lambda *_: self._open_support()))
-        layout.add_widget(Button(text="Backup exportieren", size_hint_y=None, height=40, on_release=lambda *_: self._export_backup()))
-        layout.add_widget(Button(text="Backup importieren", size_hint_y=None, height=40, on_release=lambda *_: self._import_backup_prompt()))
+        layout.add_widget(Button(text="Datenbank Export", size_hint_y=None, height=40, on_release=lambda *_: self._export_backup()))
+        layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=40, on_release=lambda *_: self._import_backup_prompt()))
         layout.add_widget(Button(text="Debug report", size_hint_y=None, height=40, on_release=lambda *_: self._show_debug_report()))
         layout.add_widget(Button(text="Schließen", size_hint_y=None, height=40, on_release=lambda *_: popup.dismiss()))
         popup = Popup(title="Menü", content=layout, size_hint=(0.8, 0.7))
@@ -482,16 +542,35 @@ class JonMemApp(App):
             text = _read_text(os.path.join(os.path.dirname(__file__), "License.txt"))
         except Exception as exc:
             text = f"License not available: {exc}"
-        content = TextInput(text=text, readonly=True)
-        Popup(title="Lizenz", content=content, size_hint=(0.9, 0.9)).open()
+        box = BoxLayout(orientation="vertical", spacing=6, padding=6)
+        box.add_widget(TextInput(text=text, readonly=True))
+        box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+                              on_release=lambda *_: popup.dismiss()))
+        popup = Popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
+        popup.open()
 
     def _open_support(self) -> None:
         import webbrowser
         webbrowser.open(SUPPORT_URL)
 
     def _export_backup(self) -> None:
+        if filechooser is not None and hasattr(filechooser, "save_file"):
+            try:
+                paths = filechooser.save_file(title="Datenbank Export", path=os.path.expanduser("~"),
+                                              filters=[("YAML", "*.yaml")])
+                if paths:
+                    self._export_backup_to(paths[0])
+                return
+            except Exception as exc:
+                self._log_error("filechooser save failed", exc)
+        self._export_backup_fallback()
+
+    def _export_backup_fallback(self) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
+        self._export_backup_to(path, show_path=True)
+
+    def _export_backup_to(self, path: str, show_path: bool = False) -> None:
         payload = {
             "meta": {"created": datetime.now().isoformat(timespec="seconds")},
             "vocab": self.vocab,
@@ -500,23 +579,37 @@ class JonMemApp(App):
         }
         try:
             _save_yaml(path, payload)
-            Popup(title="Backup", content=Label(text=f"Gespeichert:\n{path}"), size_hint=(0.9, 0.4)).open()
+            text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
+            Popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
         except Exception as exc:
             self._log_error("backup export failed", exc)
-            Popup(title="Backup", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
+            Popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
 
     def _import_backup_prompt(self) -> None:
+        if filechooser is not None and hasattr(filechooser, "open_file"):
+            try:
+                paths = filechooser.open_file(title="Datenbank Import", path=os.path.expanduser("~"),
+                                              filters=[("YAML", "*.yaml")], multiple=False)
+                if paths:
+                    self._import_backup(paths[0])
+                return
+            except Exception as exc:
+                self._log_error("filechooser open failed", exc)
+
         box = BoxLayout(orientation="vertical", spacing=6, padding=8)
-        box.add_widget(Label(text="Pfad zur YAML-Backup-Datei"))
-        path_input = TextInput(multiline=False, text="")
+        box.add_widget(Label(text="Pfad zur YAML-Datei"))
+        path_input = TextInput(multiline=False, text="", font_size=INPUT_FONT_SIZE)
         box.add_widget(path_input)
 
         def do_import(_):
             popup.dismiss()
             self._import_backup(path_input.text.strip())
 
-        box.add_widget(Button(text="Importieren", size_hint_y=None, height=40, on_release=do_import))
-        popup = Popup(title="Backup importieren", content=box, size_hint=(0.9, 0.5))
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Importieren", on_release=do_import))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = Popup(title="Datenbank Import", content=box, size_hint=(0.9, 0.5))
         popup.open()
 
     def _import_backup(self, path: str) -> None:
@@ -531,10 +624,10 @@ class JonMemApp(App):
             if "training_log" in data:
                 self.training_log = data["training_log"]
                 _save_json(self.log_path, self.training_log)
-            Popup(title="Backup", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
+            Popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
         except Exception as exc:
             self._log_error("backup import failed", exc)
-            Popup(title="Backup", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            Popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
 
     def _show_debug_report(self) -> None:
         lines = ["JonMem Debug Report", f"Version: {__version__}", f"Platform: {kivy_platform}"]
@@ -543,8 +636,12 @@ class JonMemApp(App):
             lines.extend(self._error_log)
         if self._last_exception:
             lines.append("\nLast exception:\n" + self._last_exception)
-        content = TextInput(text="\n".join(lines), readonly=True)
-        Popup(title="Debug report", content=content, size_hint=(0.95, 0.95)).open()
+        box = BoxLayout(orientation="vertical", spacing=6, padding=6)
+        box.add_widget(TextInput(text="\n".join(lines), readonly=True))
+        box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+                              on_release=lambda *_: popup.dismiss()))
+        popup = Popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
+        popup.open()
 
     def _check_notification(self) -> None:
         if notification is None:
@@ -760,6 +857,32 @@ class JonMemApp(App):
         self._append_training_log(total)
         Popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
         self.sm.current = "menu"
+
+    def show_session_pyramid(self) -> None:
+        if not self.session_items:
+            Popup(title="Pyramide", content=Label(text="Keine Session aktiv."), size_hint=(0.6, 0.3)).open()
+            return
+        stages = {i: [] for i in range(1, MAX_STAGE + 1)}
+        for item in self.session_items:
+            prog = self.progress.get(item["id"], {}).get(self.session_direction, {})
+            stage = int(prog.get("stage", 1))
+            stages.setdefault(stage, []).append(item.get("prompt", ""))
+
+        layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
+        scroll = ScrollView()
+        inner = BoxLayout(orientation="vertical", size_hint_y=None, spacing=4)
+        inner.bind(minimum_height=inner.setter("height"))
+
+        for stage in range(MAX_STAGE, 0, -1):
+            inner.add_widget(Label(text=f"Stufe {stage}", size_hint_y=None, height=24, bold=True))
+            for prompt in stages.get(stage, []):
+                inner.add_widget(Label(text=f"• {prompt}", size_hint_y=None, height=22, halign="left"))
+        scroll.add_widget(inner)
+        layout.add_widget(scroll)
+        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: popup.dismiss()))
+        popup = Popup(title="Pyramide der Session", content=layout, size_hint=(0.9, 0.9))
+        popup.open()
 
     def _append_training_log(self, total: int) -> None:
         entry = {
