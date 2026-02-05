@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
+from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.gridlayout import GridLayout
@@ -51,10 +52,13 @@ MAX_STAGE = 4
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
-INPUT_HEIGHT = 50
-BUTTON_HEIGHT = 48
-INPUT_FONT_SIZE = 18
-CARD_HEIGHT = 58
+INPUT_HEIGHT = 64
+BUTTON_HEIGHT = 56
+INPUT_FONT_SIZE = 22
+BUTTON_FONT_SIZE = 22
+SPINNER_FONT_SIZE = 22
+LABEL_FONT_SIZE = 20
+CARD_HEIGHT = 68
 CALENDAR_CELL_HEIGHT = 70
 
 try:
@@ -149,10 +153,11 @@ def _ensure_beep(path: str) -> None:
 
 class TopBar(BoxLayout):
     def __init__(self, app, title: str, **kwargs):
-        super().__init__(orientation="horizontal", size_hint_y=None, height=48, **kwargs)
+        super().__init__(orientation="horizontal", size_hint_y=None, height=BUTTON_HEIGHT, **kwargs)
         self.app = app
-        self.add_widget(Button(text="≡", size_hint_x=None, width=48, on_release=self.app.open_menu))
-        self.add_widget(Label(text=title))
+        self.add_widget(Button(text="≡", size_hint_x=None, width=BUTTON_HEIGHT,
+                               on_release=self.app.open_menu))
+        self.add_widget(Label(text=title, font_size=LABEL_FONT_SIZE + 2))
 
 
 class CardRow(BoxLayout):
@@ -164,12 +169,28 @@ class CardRow(BoxLayout):
             Color(0.75, 0.72, 0.68, 1)
             self._border = Line(rounded_rectangle=[self.x, self.y, self.width, self.height, 10])
         self.bind(pos=self._update_canvas, size=self._update_canvas)
-        self.add_widget(Label(text=text, halign="left", valign="middle"))
+        label = Label(text=text, halign="left", valign="middle", font_size=LABEL_FONT_SIZE)
+        label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
+        self.add_widget(label)
 
     def _update_canvas(self, *_):
         self._bg.pos = self.pos
         self._bg.size = self.size
         self._border.rounded_rectangle = [self.x, self.y, self.width, self.height, 10]
+
+
+class VocabRow(BoxLayout):
+    def __init__(self, card: dict, on_edit, on_delete, **kwargs):
+        super().__init__(orientation="horizontal", size_hint_y=None, height=CARD_HEIGHT,
+                         padding=6, spacing=6, **kwargs)
+        label = Label(text=f"{card.get('de', '')} — {card.get('en', '')}",
+                      halign="left", valign="middle", font_size=LABEL_FONT_SIZE)
+        label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
+        self.add_widget(label)
+        self.add_widget(Button(text="Bearbeiten", size_hint_x=None, width=140,
+                               on_release=lambda *_: on_edit(card)))
+        self.add_widget(Button(text="Löschen", size_hint_x=None, width=110,
+                               on_release=lambda *_: on_delete(card)))
 
 
 class CalendarCell(BoxLayout):
@@ -269,89 +290,197 @@ class VocabScreen(Screen):
     def __init__(self, app, **kwargs):
         super().__init__(**kwargs)
         self.app = app
+        self.selected_lang = ""
+        self.selected_topic = ""
+        self.selected_topic_id = ""
+
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Vokabeln"))
-        body = BoxLayout(orientation="vertical", padding=16, spacing=8)
 
-        body.add_widget(Label(text="Sprache"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT)
-        self.lang_spinner.bind(text=lambda *_: self._refresh_topics())
-        body.add_widget(self.lang_spinner)
-
-        body.add_widget(Label(text="Thema"))
-        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT)
-        self.topic_spinner.bind(text=lambda *_: self._refresh_cards())
-        body.add_widget(self.topic_spinner)
-
-        body.add_widget(Label(text="Neues Thema (optional)"))
-        self.topic_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
-        body.add_widget(self.topic_input)
-
-        self.cards_label = Label(text="Vorhandene Vokabeln", size_hint_y=None, height=24)
-        body.add_widget(self.cards_label)
-        self.cards_layout = BoxLayout(orientation="vertical", spacing=4, size_hint_y=None)
-        self.cards_layout.bind(minimum_height=self.cards_layout.setter("height"))
-        cards_scroll = ScrollView(size_hint=(1, None), height=120)
-        cards_scroll.add_widget(self.cards_layout)
-        body.add_widget(cards_scroll)
-
-        body.add_widget(Label(text="Deutsch"))
-        self.de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
-        body.add_widget(self.de_input)
-        body.add_widget(Label(text="Zielsprache"))
-        self.en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
-        body.add_widget(self.en_input)
-        body.add_widget(Label(text="Eselsbrücke DE → EN"))
-        self.hint_de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
-        body.add_widget(self.hint_de_input)
-        body.add_widget(Label(text="Eselsbrücke EN → DE"))
-        self.hint_en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
-        body.add_widget(self.hint_en_input)
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
-        btn_row.add_widget(Button(text="Speichern", on_release=lambda *_: self._save()))
-        btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self.app.show_menu()))
-        body.add_widget(btn_row)
-        layout.add_widget(body)
+        self.wizard = ScreenManager()
+        self.step_lang = Screen(name="vocab_lang")
+        self.step_topic = Screen(name="vocab_topic")
+        self.step_list = Screen(name="vocab_list")
+        self._build_step_lang()
+        self._build_step_topic()
+        self._build_step_list()
+        self.wizard.add_widget(self.step_lang)
+        self.wizard.add_widget(self.step_topic)
+        self.wizard.add_widget(self.step_list)
+        layout.add_widget(self.wizard)
         self.add_widget(layout)
 
     def on_pre_enter(self, *args):
         self._refresh_languages()
 
+    def _build_step_lang(self) -> None:
+        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
+        body.add_widget(Label(text="1. Zielsprache wählen oder anlegen", font_size=LABEL_FONT_SIZE))
+        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT,
+                                    font_size=SPINNER_FONT_SIZE)
+        body.add_widget(self.lang_spinner)
+        body.add_widget(Label(text="Neue Zielsprache (optional)", font_size=LABEL_FONT_SIZE))
+        self.new_lang_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+                                        font_size=INPUT_FONT_SIZE, hint_text="z.B. en, fr")
+        body.add_widget(self.new_lang_input)
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_language()))
+        btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self.app.show_menu()))
+        body.add_widget(btn_row)
+        self.step_lang.add_widget(body)
+
+    def _build_step_topic(self) -> None:
+        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
+        self.lang_label = Label(text="", font_size=LABEL_FONT_SIZE)
+        body.add_widget(self.lang_label)
+        body.add_widget(Label(text="2. Thema wählen oder anlegen", font_size=LABEL_FONT_SIZE))
+        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT,
+                                     font_size=SPINNER_FONT_SIZE)
+        body.add_widget(self.topic_spinner)
+        body.add_widget(Label(text="Neues Thema (optional)", font_size=LABEL_FONT_SIZE))
+        self.topic_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+                                     font_size=INPUT_FONT_SIZE, hint_text="z.B. Reisen")
+        body.add_widget(self.topic_input)
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_topic()))
+        btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self._go_step("vocab_lang")))
+        body.add_widget(btn_row)
+        self.step_topic.add_widget(body)
+
+    def _build_step_list(self) -> None:
+        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
+        self.topic_label = Label(text="", font_size=LABEL_FONT_SIZE)
+        body.add_widget(self.topic_label)
+        self.cards_layout = BoxLayout(orientation="vertical", spacing=6, size_hint_y=None)
+        self.cards_layout.bind(minimum_height=self.cards_layout.setter("height"))
+        cards_scroll = ScrollView(size_hint=(1, 1))
+        cards_scroll.add_widget(self.cards_layout)
+        body.add_widget(cards_scroll)
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Neu", on_release=lambda *_: self._open_card_editor()))
+        btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self._go_step("vocab_topic")))
+        btn_row.add_widget(Button(text="Fertig", on_release=lambda *_: self.app.show_menu()))
+        body.add_widget(btn_row)
+        self.step_list.add_widget(body)
+
+    def _go_step(self, name: str) -> None:
+        self.wizard.current = name
+
     def _refresh_languages(self) -> None:
         langs = self.app.get_target_languages()
         self.lang_spinner.values = langs
-        if langs:
+        if self.selected_lang and self.selected_lang in langs:
+            self.lang_spinner.text = self.selected_lang
+        elif langs:
             self.lang_spinner.text = langs[0]
-        self._refresh_topics()
+        else:
+            self.lang_spinner.text = ""
+        self.new_lang_input.text = ""
+        self.wizard.current = "vocab_lang"
 
     def _refresh_topics(self) -> None:
-        lang = self.lang_spinner.text
-        topics = self.app.get_topics(lang)
+        topics = self.app.get_topics(self.selected_lang)
         self.topic_spinner.values = topics
-        self.topic_spinner.text = topics[0] if topics else ""
-        self._refresh_cards()
+        if self.selected_topic and self.selected_topic in topics:
+            self.topic_spinner.text = self.selected_topic
+        elif topics:
+            self.topic_spinner.text = topics[0]
+        else:
+            self.topic_spinner.text = ""
 
     def _refresh_cards(self) -> None:
         self.cards_layout.clear_widgets()
-        lang = self.lang_spinner.text
-        topic_name = self.topic_spinner.text
-        for card in self.app.get_cards_for_topic(lang, topic_name):
-            self.cards_layout.add_widget(CardRow(text=f"{card['de']} — {card['en']}"))
+        for card in self.app.get_cards_for_topic(self.selected_lang, self.selected_topic):
+            self.cards_layout.add_widget(VocabRow(card, self._open_card_editor, self._confirm_delete))
 
-    def _save(self) -> None:
-        lang = self.lang_spinner.text
-        topic = self.topic_input.text.strip() or self.topic_spinner.text.strip()
-        de = self.de_input.text.strip()
-        en = self.en_input.text.strip()
-        hint_de = self.hint_de_input.text.strip()
-        hint_en = self.hint_en_input.text.strip()
-        self.app.add_vocab(lang, topic, de, en, hint_de, hint_en)
-        self.topic_input.text = ""
-        self.de_input.text = ""
-        self.en_input.text = ""
-        self.hint_de_input.text = ""
-        self.hint_en_input.text = ""
+    def _select_language(self) -> None:
+        new_lang = self.new_lang_input.text.strip()
+        lang = new_lang or self.lang_spinner.text.strip()
+        if not lang:
+            Popup(title="Vokabeln", content=Label(text="Bitte eine Zielsprache wählen oder anlegen."),
+                  size_hint=(0.7, 0.3)).open()
+            return
+        if new_lang:
+            self.app.ensure_target_language(lang)
+        self.selected_lang = lang
+        self.lang_label.text = f"Sprache: {self.selected_lang}"
         self._refresh_topics()
+        self._go_step("vocab_topic")
+
+    def _select_topic(self) -> None:
+        topic = self.topic_input.text.strip() or self.topic_spinner.text.strip()
+        if not topic:
+            Popup(title="Vokabeln", content=Label(text="Bitte ein Thema wählen oder anlegen."),
+                  size_hint=(0.7, 0.3)).open()
+            return
+        self.selected_topic_id = self.app.ensure_topic(self.selected_lang, topic)
+        self.selected_topic = topic
+        self.topic_input.text = ""
+        self.topic_label.text = f"3. Vokabeln für {self.selected_lang} / {self.selected_topic}"
+        self._refresh_cards()
+        self._go_step("vocab_list")
+
+    def _open_card_editor(self, card: dict | None = None) -> None:
+        title = "Vokabel bearbeiten" if card else "Neue Vokabel"
+        box = BoxLayout(orientation="vertical", spacing=8, padding=8)
+        box.add_widget(Label(text="Deutsch", font_size=LABEL_FONT_SIZE))
+        de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        box.add_widget(de_input)
+        box.add_widget(Label(text="Zielsprache", font_size=LABEL_FONT_SIZE))
+        en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        box.add_widget(en_input)
+        box.add_widget(Label(text="Eselsbrücke DE → EN", font_size=LABEL_FONT_SIZE))
+        hint_de_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        box.add_widget(hint_de_input)
+        box.add_widget(Label(text="Eselsbrücke EN → DE", font_size=LABEL_FONT_SIZE))
+        hint_en_input = TextInput(multiline=False, size_hint_y=None, height=INPUT_HEIGHT, font_size=INPUT_FONT_SIZE)
+        box.add_widget(hint_en_input)
+
+        if card:
+            de_input.text = card.get("de", "")
+            en_input.text = card.get("en", "")
+            hint_de_input.text = card.get("hint_de_to_en", "")
+            hint_en_input.text = card.get("hint_en_to_de", "")
+
+        def do_save(_):
+            de = de_input.text.strip()
+            en = en_input.text.strip()
+            hint_de = hint_de_input.text.strip()
+            hint_en = hint_en_input.text.strip()
+            if not de or not en:
+                Popup(title="Vokabeln", content=Label(text="Deutsch und Zielsprache müssen gesetzt sein."),
+                      size_hint=(0.7, 0.3)).open()
+                return
+            if card:
+                self.app.update_card(card.get("id", ""), de, en, hint_de, hint_en)
+                Popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
+            else:
+                self.app.add_vocab(self.selected_lang, self.selected_topic, de, en, hint_de, hint_en)
+            popup.dismiss()
+            self._refresh_cards()
+
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Speichern", on_release=do_save))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = Popup(title=title, content=box, size_hint=(0.95, 0.9))
+        popup.open()
+
+    def _confirm_delete(self, card: dict) -> None:
+        box = BoxLayout(orientation="vertical", spacing=8, padding=8)
+        box.add_widget(Label(text="Vokabel löschen?", font_size=LABEL_FONT_SIZE))
+
+        def do_delete(_):
+            self.app.delete_card(card.get("id", ""))
+            popup.dismiss()
+            self._refresh_cards()
+
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Löschen", on_release=do_delete))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = Popup(title="Vokabeln", content=box, size_hint=(0.7, 0.3))
+        popup.open()
 
 
 class CalendarScreen(Screen):
@@ -407,6 +536,13 @@ class JonMemApp(App):
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
+        Button.font_size = BUTTON_FONT_SIZE
+        ToggleButton.font_size = BUTTON_FONT_SIZE
+        Spinner.font_size = SPINNER_FONT_SIZE
+        if IS_ANDROID:
+            Window.softinput_mode = "resize"
+        Window.bind(on_focus=self._on_window_focus)
+        Window.clearcolor = (0.98, 0.97, 0.95, 1)
 
         self.data_dir = self.user_data_dir
         os.makedirs(self.data_dir, exist_ok=True)
@@ -453,6 +589,20 @@ class JonMemApp(App):
         self.sm.current = "menu"
         return self.sm
 
+    def _on_window_focus(self, _window, focused: bool) -> None:
+        if focused:
+            Clock.schedule_once(self._force_redraw, 0)
+
+    def _force_redraw(self, *_):
+        try:
+            Window.canvas.ask_update()
+        except Exception:
+            pass
+
+    def on_resume(self):
+        self._force_redraw()
+        return True
+
     def _log_error(self, label: str, exc: Exception | None = None) -> None:
         msg = f"[{datetime.now().isoformat(timespec='seconds')}] {label}"
         if exc is not None:
@@ -493,6 +643,28 @@ class JonMemApp(App):
             langs = ["en"]
         return langs
 
+    def ensure_target_language(self, lang: str) -> None:
+        if not lang:
+            return
+        meta = self.vocab.setdefault("meta", {})
+        langs = meta.get("target_langs") or []
+        if isinstance(langs, str):
+            langs = [langs]
+        if lang not in langs:
+            langs.append(lang)
+        meta["target_langs"] = langs
+        self._save_vocab()
+
+    def ensure_topic(self, lang: str, topic: str) -> str:
+        topic = topic.strip() or "Allgemein"
+        topic_id = _slugify(topic)
+        topics = self.vocab.get("topics", [])
+        if not any(t.get("id") == topic_id and t.get("lang", "en") == lang for t in topics):
+            topics.append({"id": topic_id, "name": topic, "lang": lang})
+        self.vocab["topics"] = topics
+        self._save_vocab()
+        return topic_id
+
     def get_topics(self, lang: str):
         topics = []
         for topic in self.vocab.get("topics", []):
@@ -528,12 +700,18 @@ class JonMemApp(App):
 
     def open_menu(self, *_):
         layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
-        layout.add_widget(Button(text="Lizenz", size_hint_y=None, height=40, on_release=lambda *_: self._show_license()))
-        layout.add_widget(Button(text="Unterstütze mich", size_hint_y=None, height=40, on_release=lambda *_: self._open_support()))
-        layout.add_widget(Button(text="Datenbank Export", size_hint_y=None, height=40, on_release=lambda *_: self._export_backup()))
-        layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=40, on_release=lambda *_: self._import_backup_prompt()))
-        layout.add_widget(Button(text="Debug report", size_hint_y=None, height=40, on_release=lambda *_: self._show_debug_report()))
-        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=40, on_release=lambda *_: popup.dismiss()))
+        layout.add_widget(Button(text="Lizenz", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: self._show_license()))
+        layout.add_widget(Button(text="Unterstütze mich", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: self._open_support()))
+        layout.add_widget(Button(text="Datenbank Export", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: self._export_backup()))
+        layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: self._import_backup_prompt()))
+        layout.add_widget(Button(text="Debug report", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: self._show_debug_report()))
+        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+                                 on_release=lambda *_: popup.dismiss()))
         popup = Popup(title="Menü", content=layout, size_hint=(0.8, 0.7))
         popup.open()
 
@@ -560,10 +738,32 @@ class JonMemApp(App):
                                               filters=[("YAML", "*.yaml")])
                 if paths:
                     self._export_backup_to(paths[0])
+                    return
+                Popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
+                      size_hint=(0.6, 0.3)).open()
                 return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
-        self._export_backup_fallback()
+        self._export_backup_prompt()
+
+    def _export_backup_prompt(self) -> None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
+        box = BoxLayout(orientation="vertical", spacing=6, padding=8)
+        box.add_widget(Label(text="Pfad für Exportdatei"))
+        path_input = TextInput(multiline=False, text=default_path, font_size=INPUT_FONT_SIZE)
+        box.add_widget(path_input)
+
+        def do_export(_):
+            popup.dismiss()
+            self._export_backup_to(path_input.text.strip(), show_path=True)
+
+        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row.add_widget(Button(text="Exportieren", on_release=do_export))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = Popup(title="Datenbank Export", content=box, size_hint=(0.9, 0.5))
+        popup.open()
 
     def _export_backup_fallback(self) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -676,10 +876,7 @@ class JonMemApp(App):
             Popup(title="Vokabeln", content=Label(text="Deutsch und Englisch müssen gesetzt sein."), size_hint=(0.6, 0.3)).open()
             return
         topic = topic.strip() or "Allgemein"
-        topic_id = _slugify(topic)
-        topics = self.vocab.get("topics", [])
-        if not any(t.get("id") == topic_id and t.get("lang", "en") == lang for t in topics):
-            topics.append({"id": topic_id, "name": topic, "lang": lang})
+        topic_id = self.ensure_topic(lang, topic)
         cards = self.vocab.get("cards", [])
         idx = sum(1 for c in cards if c.get("topic") == topic_id and c.get("lang", "en") == lang) + 1
         card_id = f"{topic_id}_{idx:03d}_{lang}"
@@ -692,7 +889,6 @@ class JonMemApp(App):
             "hint_de_to_en": hint_de,
             "hint_en_to_de": hint_en,
         })
-        self.vocab["topics"] = topics
         self.vocab["cards"] = cards
         meta = self.vocab.setdefault("meta", {})
         target_langs = meta.get("target_langs") or []
@@ -701,6 +897,31 @@ class JonMemApp(App):
         meta["target_langs"] = target_langs
         self._save_vocab()
         Popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
+
+    def update_card(self, card_id: str, de: str, en: str, hint_de: str, hint_en: str) -> None:
+        if not card_id:
+            return
+        cards = self.vocab.get("cards", [])
+        for card in cards:
+            if card.get("id") == card_id:
+                card["de"] = de
+                card["en"] = en
+                card["hint_de_to_en"] = hint_de
+                card["hint_en_to_de"] = hint_en
+                break
+        self.vocab["cards"] = cards
+        self._save_vocab()
+
+    def delete_card(self, card_id: str) -> None:
+        if not card_id:
+            return
+        cards = self.vocab.get("cards", [])
+        cards = [card for card in cards if card.get("id") != card_id]
+        self.vocab["cards"] = cards
+        if card_id in self.progress:
+            self.progress.pop(card_id, None)
+            _save_json(self.progress_path, self.progress)
+        self._save_vocab()
 
     def start_training(self, mode: str, direction: str) -> None:
         self.session_mode = mode
@@ -814,7 +1035,7 @@ class JonMemApp(App):
                 self._start_timer()
                 self.update_training_view()
 
-        layout.add_widget(Button(text="OK", size_hint_y=None, height=40, on_release=_next))
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=BUTTON_HEIGHT, on_release=_next))
         popup = Popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
         popup.open()
 
