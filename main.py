@@ -281,14 +281,14 @@ class TrainingSetupScreen(Screen):
         self.app = app
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Training"))
-        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        body.add_widget(Label(text="Modus"))
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
+        body.add_widget(_styled_label("Modus"))
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Einführen", on_release=lambda *_: self._start("introduce")))
         btn_row.add_widget(Button(text="Wiederholen", on_release=lambda *_: self._start("review")))
         body.add_widget(btn_row)
-        body.add_widget(Label(text="Richtung"))
-        dir_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        body.add_widget(_styled_label("Richtung"))
+        dir_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         self.dir_de = ToggleButton(text="DE → EN", group="direction", state="down")
         self.dir_en = ToggleButton(text="EN → DE", group="direction")
         self.dir_de.bind(state=lambda btn, state: self._toggle_dir(btn, state, "de_to_en"))
@@ -296,9 +296,9 @@ class TrainingSetupScreen(Screen):
         dir_row.add_widget(self.dir_de)
         dir_row.add_widget(self.dir_en)
         body.add_widget(dir_row)
-        self.dir_label = Label(text="Aktuell: DE → EN")
+        self.dir_label = _styled_label("Aktuell: DE → EN")
         body.add_widget(self.dir_label)
-        body.add_widget(Button(text="Zurück", size_hint_y=None, height=BUTTON_HEIGHT,
+        body.add_widget(Button(text="Zurück", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                on_release=lambda *_: self.app.show_menu()))
         layout.add_widget(body)
         self.add_widget(layout)
@@ -322,21 +322,21 @@ class TrainingScreen(Screen):
         self.app = app
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Training"))
-        body = BoxLayout(orientation="vertical", padding=16, spacing=10)
-        self.timer_label = Label(text="05:00")
+        body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(10))
+        self.timer_label = _styled_label("05:00")
         body.add_widget(self.timer_label)
-        self.prompt_label = Label(text="")
+        self.prompt_label = _styled_label("")
         body.add_widget(self.prompt_label)
-        self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
+        self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         body.add_widget(self.answer_input)
-        self.feedback_label = Label(text="")
+        self.feedback_label = _styled_label("")
         body.add_widget(self.feedback_label)
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="OK", on_release=lambda *_: self.submit()))
         btn_row.add_widget(Button(text="Pyramide", on_release=lambda *_: self.app.show_session_pyramid()))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: self.app.end_training(cancelled=True)))
         body.add_widget(btn_row)
-        layout.add_widget(body)
+        layout.add_widget(_make_scrollable(body))
         self.add_widget(layout)
 
     def on_pre_enter(self, *args):
@@ -376,49 +376,49 @@ class VocabScreen(Screen):
         self._refresh_languages()
 
     def _build_step_lang(self) -> None:
-        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        body.add_widget(Label(text="1. Zielsprache wählen oder anlegen", font_size=LABEL_FONT_SIZE))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT,
-                                    font_size=SPINNER_FONT_SIZE)
+        body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
+        body.add_widget(_styled_label("1. Zielsprache wählen oder anlegen"))
+        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
+                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
         body.add_widget(self.lang_spinner)
-        body.add_widget(Label(text="Neue Zielsprache (optional)", font_size=LABEL_FONT_SIZE))
-        self.new_lang_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+        body.add_widget(_styled_label("Neue Zielsprache (optional)"))
+        self.new_lang_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
                                                  hint_text="z.B. en, fr")
         body.add_widget(self.new_lang_input)
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_language()))
         btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self.app.show_menu()))
         body.add_widget(btn_row)
-        self.step_lang.add_widget(body)
+        self.step_lang.add_widget(_make_scrollable(body))
 
     def _build_step_topic(self) -> None:
-        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        self.lang_label = Label(text="", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
+        body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
+        self.lang_label = _styled_label("")
         body.add_widget(self.lang_label)
-        body.add_widget(Label(text="2. Thema wählen oder anlegen", font_size=LABEL_FONT_SIZE))
-        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=INPUT_HEIGHT,
-                                     font_size=SPINNER_FONT_SIZE)
+        body.add_widget(_styled_label("2. Thema wählen oder anlegen"))
+        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
+                                     font_size=_ui(BASE_SPINNER_FONT_SIZE))
         body.add_widget(self.topic_spinner)
-        body.add_widget(Label(text="Neues Thema (optional)", font_size=LABEL_FONT_SIZE))
-        self.topic_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT,
+        body.add_widget(_styled_label("Neues Thema (optional)"))
+        self.topic_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
                                               hint_text="z.B. Reisen")
         body.add_widget(self.topic_input)
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Weiter", on_release=lambda *_: self._select_topic()))
         btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self._go_step("vocab_lang")))
         body.add_widget(btn_row)
-        self.step_topic.add_widget(body)
+        self.step_topic.add_widget(_make_scrollable(body))
 
     def _build_step_list(self) -> None:
-        body = BoxLayout(orientation="vertical", padding=16, spacing=12)
-        self.topic_label = Label(text="", font_size=LABEL_FONT_SIZE, color=TEXT_COLOR)
+        body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
+        self.topic_label = _styled_label("")
         body.add_widget(self.topic_label)
         self.cards_layout = BoxLayout(orientation="vertical", spacing=6, size_hint_y=None)
         self.cards_layout.bind(minimum_height=self.cards_layout.setter("height"))
         cards_scroll = ScrollView(size_hint=(1, 1))
         cards_scroll.add_widget(self.cards_layout)
         body.add_widget(cards_scroll)
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Neu", on_release=lambda *_: self._open_card_editor()))
         btn_row.add_widget(Button(text="Zurück", on_release=lambda *_: self._go_step("vocab_topic")))
         btn_row.add_widget(Button(text="Fertig", on_release=lambda *_: self.app.show_menu()))
@@ -459,8 +459,8 @@ class VocabScreen(Screen):
         new_lang = self.new_lang_input.text.strip()
         lang = new_lang or self.lang_spinner.text.strip()
         if not lang:
-            Popup(title="Vokabeln", content=Label(text="Bitte eine Zielsprache wählen oder anlegen."),
-                  size_hint=(0.7, 0.3)).open()
+            _styled_popup(title="Vokabeln", content=Label(text="Bitte eine Zielsprache wählen oder anlegen."),
+                          size_hint=(0.7, 0.3)).open()
             return
         if new_lang:
             self.app.ensure_target_language(lang)
@@ -472,8 +472,8 @@ class VocabScreen(Screen):
     def _select_topic(self) -> None:
         topic = self.topic_input.text.strip() or self.topic_spinner.text.strip()
         if not topic:
-            Popup(title="Vokabeln", content=Label(text="Bitte ein Thema wählen oder anlegen."),
-                  size_hint=(0.7, 0.3)).open()
+            _styled_popup(title="Vokabeln", content=Label(text="Bitte ein Thema wählen oder anlegen."),
+                          size_hint=(0.7, 0.3)).open()
             return
         self.selected_topic_id = self.app.ensure_topic(self.selected_lang, topic)
         self.selected_topic = topic
@@ -484,18 +484,18 @@ class VocabScreen(Screen):
 
     def _open_card_editor(self, card: dict | None = None) -> None:
         title = "Vokabel bearbeiten" if card else "Neue Vokabel"
-        box = BoxLayout(orientation="vertical", spacing=8, padding=8)
-        box.add_widget(Label(text="Deutsch", font_size=LABEL_FONT_SIZE))
-        de_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
+        box = BoxLayout(orientation="vertical", spacing=_ui(8), padding=_ui(8))
+        box.add_widget(_styled_label("Deutsch"))
+        de_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         box.add_widget(de_input)
-        box.add_widget(Label(text="Zielsprache", font_size=LABEL_FONT_SIZE))
-        en_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
+        box.add_widget(_styled_label("Zielsprache"))
+        en_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         box.add_widget(en_input)
-        box.add_widget(Label(text="Eselsbrücke DE → EN", font_size=LABEL_FONT_SIZE))
-        hint_de_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
+        box.add_widget(_styled_label("Eselsbrücke DE → EN"))
+        hint_de_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         box.add_widget(hint_de_input)
-        box.add_widget(Label(text="Eselsbrücke EN → DE", font_size=LABEL_FONT_SIZE))
-        hint_en_input = _styled_text_input(multiline=False, size_hint_y=None, height=INPUT_HEIGHT)
+        box.add_widget(_styled_label("Eselsbrücke EN → DE"))
+        hint_en_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         box.add_widget(hint_en_input)
 
         if card:
@@ -510,38 +510,38 @@ class VocabScreen(Screen):
             hint_de = hint_de_input.text.strip()
             hint_en = hint_en_input.text.strip()
             if not de or not en:
-                Popup(title="Vokabeln", content=Label(text="Deutsch und Zielsprache müssen gesetzt sein."),
-                      size_hint=(0.7, 0.3)).open()
+                _styled_popup(title="Vokabeln", content=Label(text="Deutsch und Zielsprache müssen gesetzt sein."),
+                              size_hint=(0.7, 0.3)).open()
                 return
             if card:
                 self.app.update_card(card.get("id", ""), de, en, hint_de, hint_en)
-                Popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
+                _styled_popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
             else:
                 self.app.add_vocab(self.selected_lang, self.selected_topic, de, en, hint_de, hint_en)
             popup.dismiss()
             self._refresh_cards()
 
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Speichern", on_release=do_save))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
         box.add_widget(btn_row)
-        popup = Popup(title=title, content=box, size_hint=(0.95, 0.9))
+        popup = _styled_popup(title=title, content=_make_scrollable(box), size_hint=(0.95, 0.9))
         popup.open()
 
     def _confirm_delete(self, card: dict) -> None:
-        box = BoxLayout(orientation="vertical", spacing=8, padding=8)
-        box.add_widget(Label(text="Vokabel löschen?", font_size=LABEL_FONT_SIZE))
+        box = BoxLayout(orientation="vertical", spacing=_ui(8), padding=_ui(8))
+        box.add_widget(_styled_label("Vokabel löschen?"))
 
         def do_delete(_):
             self.app.delete_card(card.get("id", ""))
             popup.dismiss()
             self._refresh_cards()
 
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Löschen", on_release=do_delete))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
         box.add_widget(btn_row)
-        popup = Popup(title="Vokabeln", content=box, size_hint=(0.7, 0.3))
+        popup = _styled_popup(title="Vokabeln", content=box, size_hint=(0.7, 0.3))
         popup.open()
 
 
@@ -551,18 +551,18 @@ class CalendarScreen(Screen):
         self.app = app
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Kalender"))
-        self.body = BoxLayout(orientation="vertical", padding=16, spacing=8)
-        self.month_label = Label(text="")
+        self.body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(8))
+        self.month_label = _styled_label("")
         self.body.add_widget(self.month_label)
-        self.header_grid = GridLayout(cols=7, spacing=4, size_hint_y=None, height=24)
+        self.header_grid = GridLayout(cols=7, spacing=_ui(4), size_hint_y=None, height=_ui(24))
         self.grid = GridLayout(cols=7, spacing=4, size_hint_y=None, row_force_default=True,
-                               row_default_height=CALENDAR_CELL_HEIGHT)
+                               row_default_height=_ui(BASE_CALENDAR_CELL_HEIGHT))
         self.grid.bind(minimum_height=self.grid.setter("height"))
         self.body.add_widget(self.header_grid)
         scroll = ScrollView()
         scroll.add_widget(self.grid)
         self.body.add_widget(scroll)
-        self.body.add_widget(Button(text="Zurück", size_hint_y=None, height=BUTTON_HEIGHT,
+        self.body.add_widget(Button(text="Zurück", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                     on_release=lambda *_: app.show_menu()))
         layout.add_widget(self.body)
         self.add_widget(layout)
@@ -579,7 +579,7 @@ class CalendarScreen(Screen):
 
         weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
         for wd in weekdays:
-            self.header_grid.add_widget(Label(text=wd, bold=True))
+            self.header_grid.add_widget(Label(text=wd, bold=True, font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR))
 
         cal = calendar.Calendar(firstweekday=0)
         for day in cal.itermonthdates(now.year, now.month):
@@ -598,10 +598,10 @@ class JonMemApp(App):
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
-        Button.font_size = BUTTON_FONT_SIZE
-        ToggleButton.font_size = BUTTON_FONT_SIZE
-        Spinner.font_size = SPINNER_FONT_SIZE
-        Label.font_size = LABEL_FONT_SIZE
+        Button.font_size = _ui(BASE_BUTTON_FONT_SIZE)
+        ToggleButton.font_size = _ui(BASE_BUTTON_FONT_SIZE)
+        Spinner.font_size = _ui(BASE_SPINNER_FONT_SIZE)
+        Label.font_size = _ui(BASE_LABEL_FONT_SIZE)
         Label.color = TEXT_COLOR
         Button.color = TEXT_COLOR
         Button.background_normal = ""
@@ -769,20 +769,20 @@ class JonMemApp(App):
         self.sm.current = "menu"
 
     def open_menu(self, *_):
-        layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
-        layout.add_widget(Button(text="Lizenz", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Button(text="Lizenz", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._show_license()))
-        layout.add_widget(Button(text="Unterstütze mich", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Unterstütze mich", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._open_support()))
-        layout.add_widget(Button(text="Datenbank Export", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Datenbank Export", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._export_backup()))
-        layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._import_backup_prompt()))
-        layout.add_widget(Button(text="Debug report", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Debug report", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._show_debug_report()))
-        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: popup.dismiss()))
-        popup = Popup(title="Menü", content=layout, size_hint=(0.8, 0.7))
+        popup = _styled_popup(title="Menü", content=layout, size_hint=(0.8, 0.7))
         popup.open()
 
     def _show_license(self) -> None:
@@ -790,11 +790,11 @@ class JonMemApp(App):
             text = _read_text(os.path.join(os.path.dirname(__file__), "License.txt"))
         except Exception as exc:
             text = f"License not available: {exc}"
-        box = BoxLayout(orientation="vertical", spacing=6, padding=6)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
         box.add_widget(_styled_text_input(text=text, readonly=True))
-        box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+        box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                               on_release=lambda *_: popup.dismiss()))
-        popup = Popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
+        popup = _styled_popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
         popup.open()
 
     def _open_support(self) -> None:
@@ -809,8 +809,8 @@ class JonMemApp(App):
                 if paths:
                     self._export_backup_to(paths[0])
                     return
-                Popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
-                      size_hint=(0.6, 0.3)).open()
+                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
+                              size_hint=(0.6, 0.3)).open()
                 return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
@@ -819,8 +819,8 @@ class JonMemApp(App):
     def _export_backup_prompt(self) -> None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         default_path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
-        box = BoxLayout(orientation="vertical", spacing=6, padding=8)
-        box.add_widget(Label(text="Pfad für Exportdatei"))
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Pfad für Exportdatei"))
         path_input = _styled_text_input(multiline=False, text=default_path)
         box.add_widget(path_input)
 
@@ -828,11 +828,11 @@ class JonMemApp(App):
             popup.dismiss()
             self._export_backup_to(path_input.text.strip(), show_path=True)
 
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Exportieren", on_release=do_export))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
         box.add_widget(btn_row)
-        popup = Popup(title="Datenbank Export", content=box, size_hint=(0.9, 0.5))
+        popup = _styled_popup(title="Datenbank Export", content=_make_scrollable(box), size_hint=(0.9, 0.5))
         popup.open()
 
     def _export_backup_fallback(self) -> None:
@@ -850,10 +850,10 @@ class JonMemApp(App):
         try:
             _save_yaml(path, payload)
             text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
-            Popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
+            _styled_popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
         except Exception as exc:
             self._log_error("backup export failed", exc)
-            Popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
 
     def _import_backup_prompt(self) -> None:
         if filechooser is not None and hasattr(filechooser, "open_file"):
@@ -866,8 +866,8 @@ class JonMemApp(App):
             except Exception as exc:
                 self._log_error("filechooser open failed", exc)
 
-        box = BoxLayout(orientation="vertical", spacing=6, padding=8)
-        box.add_widget(Label(text="Pfad zur YAML-Datei"))
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Pfad zur YAML-Datei"))
         path_input = _styled_text_input(multiline=False, text="")
         box.add_widget(path_input)
 
@@ -875,11 +875,11 @@ class JonMemApp(App):
             popup.dismiss()
             self._import_backup(path_input.text.strip())
 
-        btn_row = BoxLayout(size_hint_y=None, height=BUTTON_HEIGHT, spacing=8)
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Importieren", on_release=do_import))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
         box.add_widget(btn_row)
-        popup = Popup(title="Datenbank Import", content=box, size_hint=(0.9, 0.5))
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.5))
         popup.open()
 
     def _import_backup(self, path: str) -> None:
@@ -894,10 +894,10 @@ class JonMemApp(App):
             if "training_log" in data:
                 self.training_log = data["training_log"]
                 _save_json(self.log_path, self.training_log)
-            Popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
+            _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
         except Exception as exc:
             self._log_error("backup import failed", exc)
-            Popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
 
     def _show_debug_report(self) -> None:
         lines = ["JonMem Debug Report", f"Version: {__version__}", f"Platform: {kivy_platform}"]
@@ -906,11 +906,11 @@ class JonMemApp(App):
             lines.extend(self._error_log)
         if self._last_exception:
             lines.append("\nLast exception:\n" + self._last_exception)
-        box = BoxLayout(orientation="vertical", spacing=6, padding=6)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
         box.add_widget(_styled_text_input(text="\n".join(lines), readonly=True))
-        box.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+        box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                               on_release=lambda *_: popup.dismiss()))
-        popup = Popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
+        popup = _styled_popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
         popup.open()
 
     def _check_notification(self) -> None:
@@ -940,10 +940,10 @@ class JonMemApp(App):
 
     def add_vocab(self, lang: str, topic: str, de: str, en: str, hint_de: str, hint_en: str) -> None:
         if not lang:
-            Popup(title="Vokabeln", content=Label(text="Bitte zuerst eine Sprache wählen."), size_hint=(0.6, 0.3)).open()
+            _styled_popup(title="Vokabeln", content=Label(text="Bitte zuerst eine Sprache wählen."), size_hint=(0.6, 0.3)).open()
             return
         if not de or not en:
-            Popup(title="Vokabeln", content=Label(text="Deutsch und Englisch müssen gesetzt sein."), size_hint=(0.6, 0.3)).open()
+            _styled_popup(title="Vokabeln", content=Label(text="Deutsch und Englisch müssen gesetzt sein."), size_hint=(0.6, 0.3)).open()
             return
         topic = topic.strip() or "Allgemein"
         topic_id = self.ensure_topic(lang, topic)
@@ -966,7 +966,7 @@ class JonMemApp(App):
             target_langs.append(lang)
         meta["target_langs"] = target_langs
         self._save_vocab()
-        Popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
+        _styled_popup(title="Vokabeln", content=Label(text="Gespeichert."), size_hint=(0.4, 0.3)).open()
 
     def update_card(self, card_id: str, de: str, en: str, hint_de: str, hint_en: str) -> None:
         if not card_id:
@@ -998,7 +998,7 @@ class JonMemApp(App):
         self.session_direction = direction
         self.session_items = self._build_session_items(mode, direction)
         if not self.session_items:
-            Popup(title="Training", content=Label(text="Keine passenden Karten gefunden."), size_hint=(0.6, 0.3)).open()
+            _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."), size_hint=(0.6, 0.3)).open()
             return
         self.session_index = 0
         self.session_correct = 0
@@ -1087,8 +1087,8 @@ class JonMemApp(App):
         hint_de = item.get("hint_de_to_en", "")
         hint_en = item.get("hint_en_to_de", "")
 
-        layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
-        layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=28))
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
         layout.add_widget(Label(text=f"Deutsch: {de_text}"))
         layout.add_widget(Label(text=f"Englisch: {en_text}"))
         if hint_de:
@@ -1105,8 +1105,8 @@ class JonMemApp(App):
                 self._start_timer()
                 self.update_training_view()
 
-        layout.add_widget(Button(text="OK", size_hint_y=None, height=BUTTON_HEIGHT, on_release=_next))
-        popup = Popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
+        popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
         popup.open()
 
     def _evaluate_answer(self, given: str, expected: str) -> bool:
@@ -1146,12 +1146,12 @@ class JonMemApp(App):
         total = len(self.session_items)
         summary = f"{self.session_correct} von {total} richtig."
         self._append_training_log(total)
-        Popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
+        _styled_popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
         self.sm.current = "menu"
 
     def show_session_pyramid(self) -> None:
         if not self.session_items:
-            Popup(title="Pyramide", content=Label(text="Keine Session aktiv."), size_hint=(0.6, 0.3)).open()
+            _styled_popup(title="Pyramide", content=Label(text="Keine Session aktiv."), size_hint=(0.6, 0.3)).open()
             return
         stages = {i: [] for i in range(1, MAX_STAGE + 1)}
         for item in self.session_items:
@@ -1159,20 +1159,20 @@ class JonMemApp(App):
             stage = int(prog.get("stage", 1))
             stages.setdefault(stage, []).append(item.get("prompt", ""))
 
-        layout = BoxLayout(orientation="vertical", spacing=6, padding=10)
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
         scroll = ScrollView()
-        inner = BoxLayout(orientation="vertical", size_hint_y=None, spacing=4)
+        inner = BoxLayout(orientation="vertical", size_hint_y=None, spacing=_ui(4))
         inner.bind(minimum_height=inner.setter("height"))
 
         for stage in range(MAX_STAGE, 0, -1):
-            inner.add_widget(Label(text=f"Stufe {stage}", size_hint_y=None, height=24, bold=True))
+            inner.add_widget(Label(text=f"Stufe {stage}", size_hint_y=None, height=_ui(24), bold=True))
             for prompt in stages.get(stage, []):
-                inner.add_widget(Label(text=f"• {prompt}", size_hint_y=None, height=22, halign="left"))
+                inner.add_widget(Label(text=f"• {prompt}", size_hint_y=None, height=_ui(22), halign="left"))
         scroll.add_widget(inner)
         layout.add_widget(scroll)
-        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=BUTTON_HEIGHT,
+        layout.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: popup.dismiss()))
-        popup = Popup(title="Pyramide der Session", content=layout, size_hint=(0.9, 0.9))
+        popup = _styled_popup(title="Pyramide der Session", content=layout, size_hint=(0.9, 0.9))
         popup.open()
 
     def _append_training_log(self, total: int) -> None:
