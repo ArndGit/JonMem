@@ -98,9 +98,7 @@ def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
-    text_input = TextInput(**kwargs)
-    text_input.bind(focus=lambda w, focused: _scroll_to_widget(w) if focused else None)
-    return text_input
+    return TextInput(**kwargs)
 
 
 def _styled_label(text: str, **kwargs) -> Label:
