@@ -36,6 +36,19 @@ def strict_match(given: str, expected: str) -> bool:
     return normalize_spaces(given) == normalize_spaces(expected)
 
 
+def list_unseen_cards(cards: Iterable[dict], progress: dict, *, direction: str, lang: str) -> list[dict]:
+    unseen = []
+    for card in cards:
+        if card.get("lang", "en") != lang:
+            continue
+        card_id = card.get("id")
+        if not card_id:
+            continue
+        if progress.get(card_id, {}).get(direction) is None:
+            unseen.append(card)
+    return unseen
+
+
 def levenshtein(a: str, b: str) -> int:
     if a == b:
         return 0

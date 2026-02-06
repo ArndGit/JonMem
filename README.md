@@ -34,11 +34,13 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 
 ### Einführen (neue Karten)
 1. Es werden nur Karten berücksichtigt, die **noch keinen Fortschritt** für die gewählte Richtung haben.
-2. Pro Session wird eine begrenzte Anzahl **neuer** Karten ausgewählt:  
-   `unique_limit = SESSION_MAX_ITEMS / INTRODUCE_REPEAT_COUNT`
-3. Diese neuen Karten werden **innerhalb derselben Session wiederholt**:  
-   Gesamtliste = `unique_cards * INTRODUCE_REPEAT_COUNT`.
-4. Die Reihenfolge wird so gemischt, dass **die gleiche Karte nicht direkt hintereinander** erscheint.
+2. Zu Beginn werden **4 neue Karten angezeigt** (Dialog **Neue Karte!** mit Lösung + Tipps).  
+   Währenddessen läuft die Zeit nicht.
+3. Danach werden **genau diese 4 Karten in exakt der gezeigten Reihenfolge** abgefragt.
+4. Sobald eine Karte von Stufe 1 → 2 aufsteigt, wird **eine neue Karte gezeigt**  
+   (Dialog **Neue Karte!**) und **am Ende der Liste als Stufe 1** eingefügt.
+5. Wenn die Session durch Zeitablauf endet, werden **alle Stufe-1-Karten wieder als ungesehen markiert**,  
+   damit sie beim nächsten Einführen erneut angezeigt werden.
 
 ### Wiederholen (gelernte Karten)
 1. Es werden nur Karten berücksichtigt, die **bereits Fortschritt** für die gewählte Richtung haben.
@@ -91,3 +93,4 @@ uv run python main.py
 ## Seed-Datenbank
 Die Seed-Datenbank liegt in `data/seed_vocab.yaml`.  
 Sie wird beim ersten Start in das User-Data-Verzeichnis kopiert.
+

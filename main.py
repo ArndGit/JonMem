@@ -24,7 +24,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.spinner import Spinner
+from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.graphics import Color, RoundedRectangle, Line
@@ -110,11 +110,27 @@ class SmartTextInput(TextInput):
         return super().insert_text(substring, from_undo=from_undo)
 
 
+class ReadableSpinnerOption(SpinnerOption):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.background_normal = ""
+        self.background_color = CARD_BG
+        self.color = TEXT_COLOR
+        self.font_size = _ui(BASE_SPINNER_FONT_SIZE)
+        self.height = _ui(BASE_INPUT_HEIGHT)
+
+
 def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
     return SmartTextInput(**kwargs)
+
+
+def _styled_spinner(**kwargs) -> Spinner:
+    kwargs.setdefault("font_size", _ui(BASE_SPINNER_FONT_SIZE))
+    kwargs.setdefault("option_cls", ReadableSpinnerOption)
+    return Spinner(**kwargs)
 
 def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
@@ -217,6 +233,27 @@ def _ensure_yaml_extension(path: str) -> str:
     if path.lower().endswith((".yaml", ".yml")):
         return path
     return f"{path}.yaml"
+
+
+def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None:
+    try:
+        import tkinter  # type: ignore
+        from tkinter import filedialog  # type: ignore
+    except Exception:
+        return None
+    root = tkinter.Tk()
+    root.withdraw()
+    try:
+        path = filedialog.asksaveasfilename(
+            title=title,
+            initialdir=initial_dir,
+            initialfile=default_name,
+            defaultextension=".yaml",
+            filetypes=[("YAML", "*.yaml"), ("All files", "*.*")],
+        )
+    finally:
+        root.destroy()
+    return path or None
 
 
 def _android_read_uri(uri: str) -> bytes:
@@ -353,8 +390,7 @@ class TrainingSetupScreen(Screen):
         btn_row.add_widget(Button(text="Wiederholen", on_release=lambda *_: self._start("review")))
         body.add_widget(btn_row)
         body.add_widget(_styled_label("Sprache"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.lang_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         self.lang_spinner.bind(text=lambda _spinner, text: self._set_lang(text))
         body.add_widget(self.lang_spinner)
         self.lang_label = _styled_label("")
@@ -560,8 +596,7 @@ class VocabScreen(Screen):
     def _build_step_lang(self) -> None:
         body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
         body.add_widget(_styled_label("1. Zielsprache wählen oder anlegen"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.lang_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         body.add_widget(self.lang_spinner)
         body.add_widget(_styled_label("Neue Zielsprache (optional)"))
         self.new_lang_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
@@ -578,8 +613,7 @@ class VocabScreen(Screen):
         self.lang_label = _styled_label("")
         body.add_widget(self.lang_label)
         body.add_widget(_styled_label("2. Thema wählen oder anlegen"))
-        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                     font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.topic_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         body.add_widget(self.topic_spinner)
         body.add_widget(_styled_label("Neues Thema (optional)"))
         self.topic_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
@@ -804,6 +838,7 @@ class JonMemApp(App):
         self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
         self.almost_beep_path = os.path.join(self.data_dir, "almost.wav")
+        self.new_card_beep_path = os.path.join(self.data_dir, "new_card.wav")
         self.backup_dir = os.path.join(self.data_dir, "backups")
         os.makedirs(self.backup_dir, exist_ok=True)
 
@@ -819,11 +854,14 @@ class JonMemApp(App):
         try:
             _ensure_beep(self.beep_path, freq=880.0, duration=0.12)
             _ensure_beep(self.almost_beep_path, freq=660.0, duration=0.12)
+            _ensure_beep(self.new_card_beep_path, freq=520.0, duration=0.14)
             self._sound_success = SoundLoader.load(self.beep_path)
             self._sound_almost = SoundLoader.load(self.almost_beep_path)
+            self._sound_new_card = SoundLoader.load(self.new_card_beep_path)
         except Exception:
             self._sound_success = None
             self._sound_almost = None
+            self._sound_new_card = None
 
         self._check_notification()
 
@@ -841,6 +879,8 @@ class JonMemApp(App):
         self._timer_event = None
         self._second_chance_active = False
         self._second_chance_item_id = None
+        self._pending_new_card = None
+        self._intro_queue = []
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -1059,6 +1099,12 @@ class JonMemApp(App):
                     return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
+        if not IS_ANDROID:
+            default_name = self._default_backup_filename()
+            tk_path = _tk_save_file("Datenbank Export", os.path.expanduser("~"), default_name)
+            if tk_path:
+                self._export_backup_to(tk_path)
+                return
         if filechooser is not None and hasattr(filechooser, "choose_dir"):
             self._export_backup_choose_dir()
             return
@@ -1282,7 +1328,15 @@ class JonMemApp(App):
         self.session_lang = lang or "en"
         self.session_topic_filter_enabled = bool(topic_filter_enabled)
         self.session_topic_filter = set(topic_filter or [])
-        self.session_items = self._build_session_items(mode, direction)
+        if mode == "introduce":
+            unseen_cards = self._get_unseen_cards()
+            if not unseen_cards:
+                _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."),
+                              size_hint=(0.6, 0.3)).open()
+                return
+            self.session_items = [self._card_to_item(card) for card in unseen_cards[:4]]
+        else:
+            self.session_items = self._build_session_items(mode, direction)
         if not self.session_items:
             _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."), size_hint=(0.6, 0.3)).open()
             return
@@ -1292,8 +1346,14 @@ class JonMemApp(App):
         self.session_start = datetime.now()
         self._second_chance_active = False
         self._second_chance_item_id = None
+        self._pending_new_card = None
+        self._intro_queue = []
         self.sm.current = "train"
-        self._start_timer()
+        if mode == "introduce":
+            self._intro_queue = list(self.session_items)
+            self._show_next_intro_card()
+        else:
+            self._start_timer()
 
     def _build_session_items(self, mode: str, direction: str):
         return training.build_session_items(
@@ -1309,6 +1369,40 @@ class JonMemApp(App):
             max_stage=MAX_STAGE,
             pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
         )
+
+    def _card_to_item(self, card: dict) -> dict:
+        return {
+            "id": card.get("id"),
+            "prompt": card.get("de") if self.session_direction == "de_to_en" else card.get("en"),
+            "answer": card.get("en") if self.session_direction == "de_to_en" else card.get("de"),
+            "hint": card.get("hint_de_to_en") if self.session_direction == "de_to_en" else card.get("hint_en_to_de"),
+            "de": card.get("de", ""),
+            "en": card.get("en", ""),
+            "hint_de_to_en": card.get("hint_de_to_en", ""),
+            "hint_en_to_de": card.get("hint_en_to_de", ""),
+            "stage": 1,
+            "topic": card.get("topic"),
+            "lang": card.get("lang", "en"),
+        }
+
+    def _get_unseen_cards(self, *, exclude_ids: set[str] | None = None) -> list[dict]:
+        exclude_ids = exclude_ids or set()
+        cards = training.list_unseen_cards(
+            self.vocab.get("cards", []),
+            self.progress,
+            direction=self.session_direction,
+            lang=self.session_lang,
+        )
+        return [card for card in cards if card.get("id") not in exclude_ids]
+
+    def _queue_new_intro_card(self) -> None:
+        existing_ids = {item.get("id") for item in self.session_items if item.get("id")}
+        unseen_cards = self._get_unseen_cards(exclude_ids=existing_ids)
+        if not unseen_cards:
+            return
+        new_item = self._card_to_item(unseen_cards[0])
+        self.session_items.append(new_item)
+        self._pending_new_card = new_item
 
     def _start_timer(self) -> None:
         if self._timer_event is not None:
@@ -1347,7 +1441,9 @@ class JonMemApp(App):
                 self.session_correct += 1
                 if self._sound_success is not None:
                     self._sound_success.play()
-                self._update_progress(item["id"], True)
+                prev_stage, new_stage = self._update_progress(item["id"], True)
+                if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
+                    self._queue_new_intro_card()
             else:
                 self._update_progress(item["id"], False)
 
@@ -1366,7 +1462,9 @@ class JonMemApp(App):
             self.session_correct += 1
             if self._sound_success is not None:
                 self._sound_success.play()
-            self._update_progress(item["id"], True)
+            prev_stage, new_stage = self._update_progress(item["id"], True)
+            if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
+                self._queue_new_intro_card()
 
             # Pause timer while showing feedback
             if self._timer_event is not None:
@@ -1430,8 +1528,13 @@ class JonMemApp(App):
             if self.session_index >= len(self.session_items):
                 self.end_training(cancelled=False)
             else:
-                self._start_timer()
-                self.update_training_view()
+                if self._pending_new_card is not None:
+                    pending = self._pending_new_card
+                    self._pending_new_card = None
+                    self._show_new_card_popup(pending, resume_timer=True)
+                else:
+                    self._start_timer()
+                    self.update_training_view()
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
         popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
@@ -1449,6 +1552,62 @@ class JonMemApp(App):
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_resume))
         popup = _styled_popup(title="Fast richtig....", content=layout, size_hint=(0.8, 0.4))
+        popup.open()
+
+    def _show_new_card_popup(self, item: dict, *, resume_timer: bool) -> None:
+        if self._sound_new_card is not None:
+            self._sound_new_card.play()
+        de_text = item.get("de", "")
+        en_text = item.get("en", "")
+        hint_de = item.get("hint_de_to_en", "")
+        hint_en = item.get("hint_en_to_de", "")
+
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+        lang = (self.session_lang or "en").upper()
+        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
+        if hint_de:
+            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+        if hint_en:
+            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+
+        def _close(_):
+            popup.dismiss()
+            if resume_timer:
+                self._start_timer()
+                self.update_training_view()
+
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_close))
+        popup = _styled_popup(title="Neue Karte!", content=layout, size_hint=(0.9, 0.7))
+        popup.open()
+
+    def _show_next_intro_card(self) -> None:
+        if not self._intro_queue:
+            self._start_timer()
+            self.update_training_view()
+            return
+        item = self._intro_queue.pop(0)
+
+        def _after_close(_):
+            popup.dismiss()
+            self._show_next_intro_card()
+
+        if self._sound_new_card is not None:
+            self._sound_new_card.play()
+        de_text = item.get("de", "")
+        en_text = item.get("en", "")
+        hint_de = item.get("hint_de_to_en", "")
+        hint_en = item.get("hint_en_to_de", "")
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+        lang = (self.session_lang or "en").upper()
+        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
+        if hint_de:
+            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+        if hint_en:
+            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_after_close))
+        popup = _styled_popup(title="Neue Karte!", content=layout, size_hint=(0.9, 0.7))
         popup.open()
 
     def _second_chance_hint(self, level: int, analysis: dict, expected: str) -> tuple[bool, list[str]]:
@@ -1502,15 +1661,16 @@ class JonMemApp(App):
 
         return True, hints
 
-    def _update_progress(self, card_id: str, correct: bool) -> None:
+    def _update_progress(self, card_id: str, correct: bool) -> tuple[int, int]:
         entry = self.progress.setdefault(card_id, {})
         dir_entry = entry.setdefault(self.session_direction, {"stage": 1})
         stage = int(dir_entry.get("stage", 1))
-        stage = training.compute_next_stage(stage, correct, MAX_STAGE)
-        dir_entry["stage"] = stage
+        new_stage = training.compute_next_stage(stage, correct, MAX_STAGE)
+        dir_entry["stage"] = new_stage
         dir_entry["last_seen"] = datetime.now().isoformat(timespec="seconds")
         dir_entry["last_result"] = bool(correct)
         _save_json(self.progress_path, self.progress)
+        return stage, new_stage
 
     def end_training(self, cancelled: bool) -> None:
         if self._timer_event is not None:
@@ -1519,6 +1679,19 @@ class JonMemApp(App):
         if cancelled:
             self.sm.current = "menu"
             return
+        if self.session_mode == "introduce" and self.time_left <= 0:
+            changed = False
+            seen_ids = {item.get("id") for item in self.session_items if item.get("id")}
+            for card_id in seen_ids:
+                entry = self.progress.get(card_id, {})
+                dir_entry = entry.get(self.session_direction)
+                if dir_entry and int(dir_entry.get("stage", 1)) == 1:
+                    entry.pop(self.session_direction, None)
+                    changed = True
+                if entry == {}:
+                    self.progress.pop(card_id, None)
+            if changed:
+                _save_json(self.progress_path, self.progress)
         total = len(self.session_items)
         summary = f"{self.session_correct} von {total} richtig."
         self._append_training_log(total)

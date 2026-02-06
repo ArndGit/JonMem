@@ -1,5 +1,3 @@
-import random
-
 import training
 
 
@@ -13,30 +11,11 @@ def _make_card(card_id: str, *, lang: str, topic: str) -> dict:
     }
 
 
-def test_introduce_repeats_and_limits():
-    cards = [_make_card(f"c{i}", lang="en", topic="t1") for i in range(10)]
-    progress = {}
-    rng = random.Random(42)
-    items = training.build_session_items(
-        cards,
-        progress,
-        mode="introduce",
-        direction="de_to_en",
-        lang="en",
-        topic_filter_enabled=False,
-        topic_filter=set(),
-        max_items=10,
-        introduce_repeat_count=2,
-        max_stage=4,
-        pyramid_stage_weights={1: 4, 2: 3, 3: 2, 4: 1},
-        rng=rng,
-    )
-    assert len(items) == 10
-    counts = {}
-    for item in items:
-        counts[item["id"]] = counts.get(item["id"], 0) + 1
-    assert set(counts.values()) == {2}
-    assert len(counts) == 5
+def test_list_unseen_cards_preserves_order():
+    cards = [_make_card(f"c{i}", lang="en", topic="t1") for i in range(6)]
+    progress = {"c1": {"de_to_en": {"stage": 1}}, "c3": {"de_to_en": {"stage": 2}}}
+    unseen = training.list_unseen_cards(cards, progress, direction="de_to_en", lang="en")
+    assert [c["id"] for c in unseen] == ["c0", "c2", "c4", "c5"]
 
 
 def test_review_pyramid_weights():
