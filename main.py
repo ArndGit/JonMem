@@ -177,10 +177,9 @@ def _load_json(path: str, default):
     with open(path, "r", encoding="utf-8", errors="replace") as handle:
         return json.load(handle)
 
-
-    def _save_json(path: str, data) -> None:
-        with open(path, "w", encoding="utf-8") as handle:
-            json.dump(data, handle, ensure_ascii=False, indent=2)
+def _save_json(path: str, data) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
 
 
 def _slugify(text: str) -> str:
