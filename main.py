@@ -108,8 +108,7 @@ def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("background_color", INPUT_BG)
     return TextInput(**kwargs)
 
-
-    def _styled_label(text: str, **kwargs) -> Label:
+def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
     kwargs.setdefault("color", TEXT_COLOR)
     label = Label(text=text, **kwargs)
