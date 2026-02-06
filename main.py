@@ -29,6 +29,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.graphics import Color, RoundedRectangle, Line
 from kivy.utils import platform as kivy_platform
+import training
 
 try:
     import yaml  # type: ignore
@@ -215,16 +216,6 @@ def _levenshtein(a: str, b: str) -> int:
             cur.append(min(ins, delete, sub))
         prev = cur
     return prev[-1]
-
-
-def _shuffle_avoid_adjacent(items: list[dict], key: str, attempts: int = 200) -> list[dict]:
-    if len(items) < 3:
-        return items
-    for _ in range(attempts):
-        random.shuffle(items)
-        if all(items[i].get(key) != items[i - 1].get(key) for i in range(1, len(items))):
-            return items
-    return items
 
 
 def _is_content_uri(path: str) -> bool:
@@ -1318,75 +1309,19 @@ class JonMemApp(App):
         self._start_timer()
 
     def _build_session_items(self, mode: str, direction: str):
-        items = []
-        cards = self.vocab.get("cards", [])
-        for card in cards:
-            card_id = card.get("id")
-            if not card_id:
-                continue
-            if card.get("lang", "en") != self.session_lang:
-                continue
-            prog = self.progress.get(card_id, {}).get(direction)
-            if mode == "introduce" and prog is not None:
-                continue
-            if mode == "review" and prog is None:
-                continue
-            if mode == "review" and self.session_topic_filter_enabled:
-                if card.get("topic") not in self.session_topic_filter:
-                    continue
-            stage = 1
-            if prog is not None:
-                stage = int(prog.get("stage", 1))
-            prompt = card.get("de") if direction == "de_to_en" else card.get("en")
-            answer = card.get("en") if direction == "de_to_en" else card.get("de")
-            hint = card.get("hint_de_to_en") if direction == "de_to_en" else card.get("hint_en_to_de")
-            items.append({
-                "id": card_id,
-                "prompt": prompt,
-                "answer": answer,
-                "hint": hint,
-                "de": card.get("de", ""),
-                "en": card.get("en", ""),
-                "hint_de_to_en": card.get("hint_de_to_en", ""),
-                "hint_en_to_de": card.get("hint_en_to_de", ""),
-                "stage": stage,
-            })
-        if mode == "introduce":
-            random.shuffle(items)
-            unique_limit = max(1, SESSION_MAX_ITEMS // INTRODUCE_REPEAT_COUNT)
-            items = items[:unique_limit]
-            session = items * INTRODUCE_REPEAT_COUNT
-            return _shuffle_avoid_adjacent(session, "id")[:SESSION_MAX_ITEMS]
-
-        if mode == "review":
-            stage_pools = {stage: [] for stage in range(1, MAX_STAGE + 1)}
-            for item in items:
-                stage_pools.get(item.get("stage", 1), stage_pools[1]).append(item)
-            for pool in stage_pools.values():
-                random.shuffle(pool)
-
-            weight_pattern = []
-            for stage in range(1, MAX_STAGE + 1):
-                weight = PYRAMID_STAGE_WEIGHTS.get(stage, 1)
-                weight_pattern.extend([stage] * max(1, weight))
-
-            session = []
-            while len(session) < SESSION_MAX_ITEMS:
-                added_any = False
-                for stage in weight_pattern:
-                    if len(session) >= SESSION_MAX_ITEMS:
-                        break
-                    pool = stage_pools.get(stage)
-                    if pool:
-                        session.append(pool.pop())
-                        added_any = True
-                if not added_any:
-                    break
-            random.shuffle(session)
-            return session
-
-        random.shuffle(items)
-        return items[:SESSION_MAX_ITEMS]
+        return training.build_session_items(
+            self.vocab.get("cards", []),
+            self.progress,
+            mode=mode,
+            direction=direction,
+            lang=self.session_lang,
+            topic_filter_enabled=self.session_topic_filter_enabled,
+            topic_filter=set(self.session_topic_filter),
+            max_items=SESSION_MAX_ITEMS,
+            introduce_repeat_count=INTRODUCE_REPEAT_COUNT,
+            max_stage=MAX_STAGE,
+            pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
+        )
 
     def _start_timer(self) -> None:
         if self._timer_event is not None:
@@ -1481,10 +1416,7 @@ class JonMemApp(App):
         entry = self.progress.setdefault(card_id, {})
         dir_entry = entry.setdefault(self.session_direction, {"stage": 1})
         stage = int(dir_entry.get("stage", 1))
-        if correct:
-            stage = min(MAX_STAGE, stage + 1)
-        else:
-            stage = max(1, stage - 1)
+        stage = training.compute_next_stage(stage, correct, MAX_STAGE)
         dir_entry["stage"] = stage
         dir_entry["last_seen"] = datetime.now().isoformat(timespec="seconds")
         dir_entry["last_result"] = bool(correct)

@@ -17,6 +17,7 @@ authors = [
 [tool.uv]
 # Standard-Workspace-venv im Projektordner
 managed = true
+dev-dependencies = ["pytest"]
 
 [tool.uv.pip]
 # Kivy stellt für manche Plattformen Wheels über den eigenen Index bereit.
