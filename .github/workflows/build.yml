@@ -22,6 +22,8 @@ concurrency:
 jobs:
   tests:
     runs-on: ubuntu-22.04
+    env:
+      PYTHONPATH: .
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +38,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --dev
+          uv sync --group dev
 
       - name: Run unit tests
         run: |
