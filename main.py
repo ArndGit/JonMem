@@ -49,6 +49,13 @@ SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.ya
 SESSION_MAX_ITEMS = 10
 SESSION_SECONDS = 300
 MAX_STAGE = 4
+INTRODUCE_REPEAT_COUNT = 2
+PYRAMID_STAGE_WEIGHTS = {
+    1: 4,
+    2: 3,
+    3: 2,
+    4: 1,
+}
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
@@ -101,7 +108,7 @@ def _styled_text_input(**kwargs) -> TextInput:
     return TextInput(**kwargs)
 
 
-def _styled_label(text: str, **kwargs) -> Label:
+    def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
     kwargs.setdefault("color", TEXT_COLOR)
     label = Label(text=text, **kwargs)
@@ -148,6 +155,22 @@ def _save_yaml(path: str, data: dict) -> None:
         yaml.safe_dump(data, handle, sort_keys=False, allow_unicode=True)
 
 
+def _dump_yaml_bytes(data: dict) -> bytes:
+    if yaml is None:
+        raise RuntimeError("pyyaml not available")
+    text = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    return text.encode("utf-8")
+
+
+def _load_yaml_bytes(raw: bytes) -> dict:
+    if yaml is None:
+        raise RuntimeError("pyyaml not available")
+    data = yaml.safe_load(raw.decode("utf-8", errors="replace")) or {}
+    if not isinstance(data, dict):
+        raise ValueError("invalid yaml structure")
+    return data
+
+
 def _load_json(path: str, default):
     if not os.path.exists(path):
         return default
@@ -155,9 +178,9 @@ def _load_json(path: str, default):
         return json.load(handle)
 
 
-def _save_json(path: str, data) -> None:
-    with open(path, "w", encoding="utf-8") as handle:
-        json.dump(data, handle, ensure_ascii=False, indent=2)
+    def _save_json(path: str, data) -> None:
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
 
 
 def _slugify(text: str) -> str:
@@ -192,6 +215,78 @@ def _levenshtein(a: str, b: str) -> int:
             cur.append(min(ins, delete, sub))
         prev = cur
     return prev[-1]
+
+
+def _shuffle_avoid_adjacent(items: list[dict], key: str, attempts: int = 200) -> list[dict]:
+    if len(items) < 3:
+        return items
+    for _ in range(attempts):
+        random.shuffle(items)
+        if all(items[i].get(key) != items[i - 1].get(key) for i in range(1, len(items))):
+            return items
+    return items
+
+
+def _is_content_uri(path: str) -> bool:
+    return isinstance(path, str) and path.startswith("content://")
+
+
+def _normalize_path(path: str) -> str:
+    if isinstance(path, str) and path.startswith("file://"):
+        return path[7:]
+    return path
+
+
+def _ensure_yaml_extension(path: str) -> str:
+    if _is_content_uri(path):
+        return path
+    if path.lower().endswith((".yaml", ".yml")):
+        return path
+    return f"{path}.yaml"
+
+
+def _android_read_uri(uri: str) -> bytes:
+    if not IS_ANDROID:
+        raise RuntimeError("android uri read not available")
+    from jnius import autoclass, jarray  # type: ignore
+    Uri = autoclass("android.net.Uri")
+    activity = autoclass("org.kivy.android.PythonActivity").mActivity
+    resolver = activity.getContentResolver()
+    juri = Uri.parse(uri)
+    stream = resolver.openInputStream(juri)
+    if stream is None:
+        raise RuntimeError("unable to open input stream")
+    ByteArrayOutputStream = autoclass("java.io.ByteArrayOutputStream")
+    buffer = jarray("b")(4096)
+    baos = ByteArrayOutputStream()
+    try:
+        while True:
+            count = stream.read(buffer)
+            if count == -1:
+                break
+            baos.write(buffer, 0, count)
+    finally:
+        stream.close()
+    data = baos.toByteArray()
+    return bytes(data)
+
+
+def _android_write_uri(uri: str, data: bytes) -> None:
+    if not IS_ANDROID:
+        raise RuntimeError("android uri write not available")
+    from jnius import autoclass, jarray  # type: ignore
+    Uri = autoclass("android.net.Uri")
+    activity = autoclass("org.kivy.android.PythonActivity").mActivity
+    resolver = activity.getContentResolver()
+    juri = Uri.parse(uri)
+    stream = resolver.openOutputStream(juri)
+    if stream is None:
+        raise RuntimeError("unable to open output stream")
+    try:
+        stream.write(jarray("b")(data))
+        stream.flush()
+    finally:
+        stream.close()
 
 
 def _ensure_beep(path: str) -> None:
@@ -285,6 +380,13 @@ class TrainingSetupScreen(Screen):
         btn_row.add_widget(Button(text="Einführen", on_release=lambda *_: self._start("introduce")))
         btn_row.add_widget(Button(text="Wiederholen", on_release=lambda *_: self._start("review")))
         body.add_widget(btn_row)
+        body.add_widget(_styled_label("Sprache"))
+        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
+                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.lang_spinner.bind(text=lambda _spinner, text: self._set_lang(text))
+        body.add_widget(self.lang_spinner)
+        self.lang_label = _styled_label("")
+        body.add_widget(self.lang_label)
         body.add_widget(_styled_label("Richtung"))
         dir_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         self.dir_de = ToggleButton(text="DE → EN", group="direction", state="down")
@@ -296,11 +398,17 @@ class TrainingSetupScreen(Screen):
         body.add_widget(dir_row)
         self.dir_label = _styled_label("Aktuell: DE → EN")
         body.add_widget(self.dir_label)
+        body.add_widget(_styled_label("Themen (nur Wiederholen)"))
+        self.topic_status = _styled_label("")
+        body.add_widget(self.topic_status)
+        body.add_widget(Button(text="Themen wählen (Experten)", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
+                               on_release=lambda *_: self._open_topic_picker()))
         body.add_widget(Button(text="Zurück", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                on_release=lambda *_: self.app.show_menu()))
         layout.add_widget(body)
         self.add_widget(layout)
         self._direction = "de_to_en"
+        self._lang = ""
 
     def _toggle_dir(self, _btn, state: str, direction: str) -> None:
         if state == "down":
@@ -308,10 +416,114 @@ class TrainingSetupScreen(Screen):
 
     def _set_dir(self, direction: str) -> None:
         self._direction = direction
-        self.dir_label.text = "Aktuell: " + ("DE → EN" if direction == "de_to_en" else "EN → DE")
+        self._update_direction_labels()
 
     def _start(self, mode: str) -> None:
-        self.app.start_training(mode, self._direction)
+        lang = self._lang or (self.lang_spinner.text or "").strip()
+        self.app.start_training(mode, self._direction, lang, self._topic_filter(), self._topic_filter_enabled())
+
+    def on_pre_enter(self, *args):
+        self._refresh_languages()
+        self._refresh_topic_status()
+
+    def _refresh_languages(self) -> None:
+        langs = self.app.get_target_languages()
+        self.lang_spinner.values = langs
+        if self._lang and self._lang in langs:
+            self.lang_spinner.text = self._lang
+        elif langs:
+            self.lang_spinner.text = langs[0]
+            self._set_lang(langs[0])
+        else:
+            self.lang_spinner.text = ""
+            self._set_lang("")
+
+    def _set_lang(self, lang: str) -> None:
+        self._lang = (lang or "").strip()
+        if self._lang:
+            self.lang_label.text = f"Aktuell: {self._lang}"
+        else:
+            self.lang_label.text = "Aktuell: -"
+        self._update_direction_labels()
+        self._refresh_topic_status()
+
+    def _update_direction_labels(self) -> None:
+        lang = (self._lang or "en").upper()
+        self.dir_de.text = f"DE → {lang}"
+        self.dir_en.text = f"{lang} → DE"
+        current = "DE → {lang}" if self._direction == "de_to_en" else "{lang} → DE"
+        self.dir_label.text = "Aktuell: " + current.format(lang=lang)
+
+    def _topic_filter_enabled(self) -> bool:
+        return self.app.is_review_topic_filter_enabled(self._lang)
+
+    def _topic_filter(self) -> list[str]:
+        return self.app.get_review_topic_filter(self._lang)
+
+    def _refresh_topic_status(self) -> None:
+        if not self._lang:
+            self.topic_status.text = "Themen: -"
+            return
+        if not self._topic_filter_enabled():
+            self.topic_status.text = "Themen: Alle (Standard)"
+            return
+        selected = self._topic_filter()
+        self.topic_status.text = f"Themen: {len(selected)} gewählt"
+
+    def _open_topic_picker(self) -> None:
+        lang = self._lang or (self.lang_spinner.text or "").strip()
+        if not lang:
+            _styled_popup(title="Themen", content=Label(text="Bitte zuerst eine Sprache wählen."),
+                          size_hint=(0.7, 0.3)).open()
+            return
+        topics = self.app.get_learned_topics(lang)
+        if not topics:
+            _styled_popup(title="Themen", content=Label(text="Noch keine eingeführten Themen vorhanden."),
+                          size_hint=(0.8, 0.3)).open()
+            return
+        if self.app.is_review_topic_filter_enabled(lang):
+            selected = set(self.app.get_review_topic_filter(lang))
+        else:
+            selected = {topic["id"] for topic in topics}
+
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(f"Sprache: {lang}"))
+        box.add_widget(_styled_label("Themen auswählen"))
+        list_box = BoxLayout(orientation="vertical", spacing=_ui(6), size_hint_y=None)
+        list_box.bind(minimum_height=list_box.setter("height"))
+        toggles = []
+        for topic in topics:
+            state = "down" if topic["id"] in selected else "normal"
+            toggle = ToggleButton(text=topic["name"], state=state, size_hint_y=None,
+                                  height=_ui(BASE_BUTTON_HEIGHT))
+            list_box.add_widget(toggle)
+            toggles.append((topic["id"], toggle))
+        scroll = ScrollView(size_hint=(1, 1))
+        scroll.add_widget(list_box)
+        box.add_widget(scroll)
+
+        def do_save(_):
+            chosen = [topic_id for topic_id, toggle in toggles if toggle.state == "down"]
+            if not chosen:
+                _styled_popup(title="Themen", content=Label(text="Bitte mindestens ein Thema wählen."),
+                              size_hint=(0.7, 0.3)).open()
+                return
+            self.app.set_review_topic_filter(lang, chosen, enabled=True)
+            popup.dismiss()
+            self._refresh_topic_status()
+
+        def do_default(_):
+            self.app.set_review_topic_filter(lang, [], enabled=False)
+            popup.dismiss()
+            self._refresh_topic_status()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Speichern", on_release=do_save))
+        btn_row.add_widget(Button(text="Standard (alle)", on_release=do_default))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Themen", content=_make_scrollable(box), size_hint=(0.9, 0.8))
+        popup.open()
 
 
 class TrainingScreen(Screen):
@@ -617,6 +829,7 @@ class JonMemApp(App):
         self.vocab_path = os.path.join(self.data_dir, "vocab.yaml")
         self.progress_path = os.path.join(self.data_dir, "progress.json")
         self.log_path = os.path.join(self.data_dir, "training_log.json")
+        self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
         self.backup_dir = os.path.join(self.data_dir, "backups")
         os.makedirs(self.backup_dir, exist_ok=True)
@@ -625,6 +838,10 @@ class JonMemApp(App):
         self.vocab = self._load_vocab()
         self.progress = _load_json(self.progress_path, {})
         self.training_log = _load_json(self.log_path, [])
+        self.settings = _load_json(self.settings_path, {
+            "review_topics_by_lang": {},
+            "review_topic_filter_enabled": {},
+        })
 
         try:
             _ensure_beep(self.beep_path)
@@ -640,6 +857,10 @@ class JonMemApp(App):
         self.session_start = None
         self.session_mode = None
         self.session_direction = "de_to_en"
+        langs = self.get_target_languages()
+        self.session_lang = langs[0] if langs else "en"
+        self.session_topic_filter_enabled = False
+        self.session_topic_filter = set()
         self.time_left = SESSION_SECONDS
         self._timer_event = None
 
@@ -702,6 +923,12 @@ class JonMemApp(App):
         except Exception as exc:
             self._log_error("vocab save failed", exc)
 
+    def _save_settings(self) -> None:
+        try:
+            _save_json(self.settings_path, self.settings)
+        except Exception as exc:
+            self._log_error("settings save failed", exc)
+
     def get_target_languages(self):
         meta = self.vocab.get("meta", {})
         langs = meta.get("target_langs") or []
@@ -722,6 +949,51 @@ class JonMemApp(App):
             langs.append(lang)
         meta["target_langs"] = langs
         self._save_vocab()
+
+    def get_learned_topics(self, lang: str):
+        lang = (lang or "").strip()
+        if not lang:
+            return []
+        topic_map = {}
+        for topic in self.vocab.get("topics", []):
+            if topic.get("lang", "en") == lang:
+                topic_map[topic.get("id")] = topic.get("name", "")
+        learned_ids = set()
+        for card in self.vocab.get("cards", []):
+            if card.get("lang", "en") != lang:
+                continue
+            if card.get("id") in self.progress:
+                learned_ids.add(card.get("topic"))
+        topics = []
+        for topic_id in learned_ids:
+            name = topic_map.get(topic_id, topic_id or "")
+            if name:
+                topics.append({"id": topic_id, "name": name})
+        topics.sort(key=lambda item: item["name"].lower())
+        return topics
+
+    def is_review_topic_filter_enabled(self, lang: str) -> bool:
+        return bool(self.settings.get("review_topic_filter_enabled", {}).get(lang, False))
+
+    def get_review_topic_filter(self, lang: str) -> list[str]:
+        selected = self.settings.get("review_topics_by_lang", {}).get(lang, [])
+        if isinstance(selected, str):
+            selected = [selected]
+        return [s for s in selected if s]
+
+    def set_review_topic_filter(self, lang: str, topic_ids: list[str], enabled: bool) -> None:
+        lang = (lang or "").strip()
+        if not lang:
+            return
+        topics_by_lang = self.settings.setdefault("review_topics_by_lang", {})
+        enabled_by_lang = self.settings.setdefault("review_topic_filter_enabled", {})
+        if enabled:
+            topics_by_lang[lang] = [t for t in topic_ids if t]
+            enabled_by_lang[lang] = True
+        else:
+            topics_by_lang.pop(lang, None)
+            enabled_by_lang[lang] = False
+        self._save_settings()
 
     def ensure_topic(self, lang: str, topic: str) -> str:
         topic = topic.strip() or "Allgemein"
@@ -812,11 +1084,32 @@ class JonMemApp(App):
                 return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
+        if filechooser is not None and hasattr(filechooser, "choose_dir"):
+            self._export_backup_choose_dir()
+            return
         self._export_backup_prompt()
 
-    def _export_backup_prompt(self) -> None:
+    def _default_backup_filename(self) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        default_path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
+        return f"backup_{timestamp}.yaml"
+
+    def _export_backup_choose_dir(self) -> None:
+        try:
+            dirs = filechooser.choose_dir(title="Datenbank Export", path=os.path.expanduser("~"))
+            if not dirs:
+                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
+                              size_hint=(0.6, 0.3)).open()
+                return
+            folder = _normalize_path(dirs[0])
+            filename = self._default_backup_filename()
+            path = os.path.join(folder, filename)
+            self._export_backup_to(path, show_path=True)
+        except Exception as exc:
+            self._log_error("filechooser choose_dir failed", exc)
+            self._export_backup_prompt()
+
+    def _export_backup_prompt(self) -> None:
+        default_path = os.path.join(self.backup_dir, self._default_backup_filename())
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
         box.add_widget(_styled_label("Pfad für Exportdatei"))
         path_input = _styled_text_input(multiline=False, text=default_path)
@@ -834,8 +1127,7 @@ class JonMemApp(App):
         popup.open()
 
     def _export_backup_fallback(self) -> None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = os.path.join(self.backup_dir, f"backup_{timestamp}.yaml")
+        path = os.path.join(self.backup_dir, self._default_backup_filename())
         self._export_backup_to(path, show_path=True)
 
     def _export_backup_to(self, path: str, show_path: bool = False) -> None:
@@ -846,8 +1138,18 @@ class JonMemApp(App):
             "training_log": self.training_log,
         }
         try:
-            _save_yaml(path, payload)
-            text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
+            path = _normalize_path(path.strip())
+            path = _ensure_yaml_extension(path)
+            if _is_content_uri(path):
+                data = _dump_yaml_bytes(payload)
+                _android_write_uri(path, data)
+                text = "Export erfolgreich."
+            else:
+                dir_path = os.path.dirname(path)
+                if dir_path:
+                    os.makedirs(dir_path, exist_ok=True)
+                _save_yaml(path, payload)
+                text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
             _styled_popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
         except Exception as exc:
             self._log_error("backup export failed", exc)
@@ -882,7 +1184,12 @@ class JonMemApp(App):
 
     def _import_backup(self, path: str) -> None:
         try:
-            data = _load_yaml(path)
+            path = _normalize_path(path.strip())
+            if _is_content_uri(path):
+                raw = _android_read_uri(path)
+                data = _load_yaml_bytes(raw)
+            else:
+                data = _load_yaml(path)
             if "vocab" in data:
                 self.vocab = data["vocab"]
                 self._save_vocab()
@@ -941,7 +1248,8 @@ class JonMemApp(App):
             _styled_popup(title="Vokabeln", content=Label(text="Bitte zuerst eine Sprache wählen."), size_hint=(0.6, 0.3)).open()
             return
         if not de or not en:
-            _styled_popup(title="Vokabeln", content=Label(text="Deutsch und Englisch müssen gesetzt sein."), size_hint=(0.6, 0.3)).open()
+            _styled_popup(title="Vokabeln", content=Label(text="Deutsch und Zielsprache müssen gesetzt sein."),
+                          size_hint=(0.6, 0.3)).open()
             return
         topic = topic.strip() or "Allgemein"
         topic_id = self.ensure_topic(lang, topic)
@@ -991,9 +1299,13 @@ class JonMemApp(App):
             _save_json(self.progress_path, self.progress)
         self._save_vocab()
 
-    def start_training(self, mode: str, direction: str) -> None:
+    def start_training(self, mode: str, direction: str, lang: str,
+                       topic_filter: list[str] | None = None, topic_filter_enabled: bool = False) -> None:
         self.session_mode = mode
         self.session_direction = direction
+        self.session_lang = lang or "en"
+        self.session_topic_filter_enabled = bool(topic_filter_enabled)
+        self.session_topic_filter = set(topic_filter or [])
         self.session_items = self._build_session_items(mode, direction)
         if not self.session_items:
             _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."), size_hint=(0.6, 0.3)).open()
@@ -1012,11 +1324,19 @@ class JonMemApp(App):
             card_id = card.get("id")
             if not card_id:
                 continue
+            if card.get("lang", "en") != self.session_lang:
+                continue
             prog = self.progress.get(card_id, {}).get(direction)
             if mode == "introduce" and prog is not None:
                 continue
             if mode == "review" and prog is None:
                 continue
+            if mode == "review" and self.session_topic_filter_enabled:
+                if card.get("topic") not in self.session_topic_filter:
+                    continue
+            stage = 1
+            if prog is not None:
+                stage = int(prog.get("stage", 1))
             prompt = card.get("de") if direction == "de_to_en" else card.get("en")
             answer = card.get("en") if direction == "de_to_en" else card.get("de")
             hint = card.get("hint_de_to_en") if direction == "de_to_en" else card.get("hint_en_to_de")
@@ -1029,7 +1349,42 @@ class JonMemApp(App):
                 "en": card.get("en", ""),
                 "hint_de_to_en": card.get("hint_de_to_en", ""),
                 "hint_en_to_de": card.get("hint_en_to_de", ""),
+                "stage": stage,
             })
+        if mode == "introduce":
+            random.shuffle(items)
+            unique_limit = max(1, SESSION_MAX_ITEMS // INTRODUCE_REPEAT_COUNT)
+            items = items[:unique_limit]
+            session = items * INTRODUCE_REPEAT_COUNT
+            return _shuffle_avoid_adjacent(session, "id")[:SESSION_MAX_ITEMS]
+
+        if mode == "review":
+            stage_pools = {stage: [] for stage in range(1, MAX_STAGE + 1)}
+            for item in items:
+                stage_pools.get(item.get("stage", 1), stage_pools[1]).append(item)
+            for pool in stage_pools.values():
+                random.shuffle(pool)
+
+            weight_pattern = []
+            for stage in range(1, MAX_STAGE + 1):
+                weight = PYRAMID_STAGE_WEIGHTS.get(stage, 1)
+                weight_pattern.extend([stage] * max(1, weight))
+
+            session = []
+            while len(session) < SESSION_MAX_ITEMS:
+                added_any = False
+                for stage in weight_pattern:
+                    if len(session) >= SESSION_MAX_ITEMS:
+                        break
+                    pool = stage_pools.get(stage)
+                    if pool:
+                        session.append(pool.pop())
+                        added_any = True
+                if not added_any:
+                    break
+            random.shuffle(session)
+            return session
+
         random.shuffle(items)
         return items[:SESSION_MAX_ITEMS]
 
@@ -1088,11 +1443,12 @@ class JonMemApp(App):
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
         layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
         layout.add_widget(Label(text=f"Deutsch: {de_text}"))
-        layout.add_widget(Label(text=f"Englisch: {en_text}"))
+        lang = (self.session_lang or "en").upper()
+        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
         if hint_de:
-            layout.add_widget(Label(text=f"Eselsbrücke DE → EN: {hint_de}"))
+            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
         if hint_en:
-            layout.add_widget(Label(text=f"Eselsbrücke EN → DE: {hint_en}"))
+            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
 
         def _next(_):
             popup.dismiss()
