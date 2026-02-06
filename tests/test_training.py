@@ -99,3 +99,9 @@ def test_compute_next_stage():
     assert training.compute_next_stage(4, True, 4) == 4
     assert training.compute_next_stage(3, False, 4) == 2
     assert training.compute_next_stage(1, False, 4) == 1
+
+
+def test_evaluate_answer_spanish_unicode():
+    assert training.evaluate_answer("la maleta", "la maleta") is True
+    assert training.evaluate_answer("la maleta", "la maleta ") is True
+    assert training.evaluate_answer("la maleta", None) is False

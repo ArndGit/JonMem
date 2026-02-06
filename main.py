@@ -194,29 +194,6 @@ def _slugify(text: str) -> str:
     return slug or "topic"
 
 
-def _normalize(text: str) -> str:
-    return " ".join("".join(ch for ch in text.lower().strip() if ch.isalnum() or ch.isspace()).split())
-
-
-def _levenshtein(a: str, b: str) -> int:
-    if a == b:
-        return 0
-    if not a:
-        return len(b)
-    if not b:
-        return len(a)
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1):
-            ins = cur[j - 1] + 1
-            delete = prev[j] + 1
-            sub = prev[j - 1] + (0 if ca == cb else 1)
-            cur.append(min(ins, delete, sub))
-        prev = cur
-    return prev[-1]
-
-
 def _is_content_uri(path: str) -> bool:
     return isinstance(path, str) and path.startswith("content://")
 
@@ -1400,18 +1377,7 @@ class JonMemApp(App):
         popup.open()
 
     def _evaluate_answer(self, given: str, expected: str) -> bool:
-        a = _normalize(given)
-        b = _normalize(expected)
-        if not a or not b:
-            return False
-        if a == b:
-            return True
-        dist = _levenshtein(a, b)
-        if len(b) <= 4:
-            return dist == 0
-        if len(b) <= 7:
-            return dist <= 1
-        return dist <= 2
+        return training.evaluate_answer(given, expected)
 
     def _update_progress(self, card_id: str, correct: bool) -> None:
         entry = self.progress.setdefault(card_id, {})
