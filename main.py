@@ -1045,9 +1045,6 @@ class JonMemApp(App):
                 if paths:
                     self._export_backup_to(paths[0])
                     return
-                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
-                              size_hint=(0.6, 0.3)).open()
-                return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
         if filechooser is not None and hasattr(filechooser, "choose_dir"):
@@ -1063,8 +1060,7 @@ class JonMemApp(App):
         try:
             dirs = filechooser.choose_dir(title="Datenbank Export", path=os.path.expanduser("~"))
             if not dirs:
-                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
-                              size_hint=(0.6, 0.3)).open()
+                self._export_backup_prompt()
                 return
             folder = _normalize_path(dirs[0])
             filename = self._default_backup_filename()
@@ -1406,7 +1402,12 @@ class JonMemApp(App):
             _styled_popup(title="Pyramide", content=Label(text="Keine Session aktiv."), size_hint=(0.6, 0.3)).open()
             return
         stages = {i: [] for i in range(1, MAX_STAGE + 1)}
+        seen_ids = set()
         for item in self.session_items:
+            item_id = item.get("id")
+            if not item_id or item_id in seen_ids:
+                continue
+            seen_ids.add(item_id)
             prog = self.progress.get(item["id"], {}).get(self.session_direction, {})
             stage = int(prog.get("stage", 1))
             stages.setdefault(stage, []).append(item.get("prompt", ""))
