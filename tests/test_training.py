@@ -103,5 +103,22 @@ def test_compute_next_stage():
 
 def test_evaluate_answer_spanish_unicode():
     assert training.evaluate_answer("la maleta", "la maleta") is True
+    assert training.evaluate_answer("la  maleta", "la maleta") is True
     assert training.evaluate_answer("la maleta", "la maleta ") is True
     assert training.evaluate_answer("la maleta", None) is False
+
+
+def test_analyze_answer_case_only():
+    analysis = training.analyze_answer("Haus", "haus")
+    assert analysis["correct"] is False
+    assert analysis["case_only"] is True
+    assert analysis["letter_errors"] == 0
+
+
+def test_analyze_answer_accents_and_punct():
+    analysis = training.analyze_answer("nino", "niño")
+    assert analysis["correct"] is False
+    assert analysis["accent_errors"] >= 1
+
+    analysis = training.analyze_answer("lami", "l'ami")
+    assert analysis["punct_errors"] >= 1

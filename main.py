@@ -28,7 +28,7 @@ from kivy.uix.spinner import Spinner
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.graphics import Color, RoundedRectangle, Line
-from kivy.utils import platform as kivy_platform
+from kivy.utils import platform as kivy_platform, escape_markup
 import training
 
 try:
@@ -102,11 +102,19 @@ def _scroll_to_widget(widget) -> None:
         parent = parent.parent
 
 
+class SmartTextInput(TextInput):
+    def insert_text(self, substring, from_undo=False):
+        if substring in ("\b", "\x08", "\x7f"):
+            self.do_backspace(from_undo=from_undo)
+            return
+        return super().insert_text(substring, from_undo=from_undo)
+
+
 def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
-    return TextInput(**kwargs)
+    return SmartTextInput(**kwargs)
 
 def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
@@ -255,12 +263,10 @@ def _android_write_uri(uri: str, data: bytes) -> None:
         stream.close()
 
 
-def _ensure_beep(path: str) -> None:
+def _ensure_beep(path: str, *, freq: float = 880.0, duration: float = 0.12) -> None:
     if os.path.exists(path):
         return
     framerate = 44100
-    duration = 0.12
-    freq = 880.0
     samples = int(framerate * duration)
     with wave.open(path, "w") as wav:
         wav.setnchannels(1)
@@ -797,6 +803,7 @@ class JonMemApp(App):
         self.log_path = os.path.join(self.data_dir, "training_log.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
+        self.almost_beep_path = os.path.join(self.data_dir, "almost.wav")
         self.backup_dir = os.path.join(self.data_dir, "backups")
         os.makedirs(self.backup_dir, exist_ok=True)
 
@@ -810,10 +817,13 @@ class JonMemApp(App):
         })
 
         try:
-            _ensure_beep(self.beep_path)
+            _ensure_beep(self.beep_path, freq=880.0, duration=0.12)
+            _ensure_beep(self.almost_beep_path, freq=660.0, duration=0.12)
             self._sound_success = SoundLoader.load(self.beep_path)
+            self._sound_almost = SoundLoader.load(self.almost_beep_path)
         except Exception:
             self._sound_success = None
+            self._sound_almost = None
 
         self._check_notification()
 
@@ -829,6 +839,8 @@ class JonMemApp(App):
         self.session_topic_filter = set()
         self.time_left = SESSION_SECONDS
         self._timer_event = None
+        self._second_chance_active = False
+        self._second_chance_item_id = None
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -1278,6 +1290,8 @@ class JonMemApp(App):
         self.session_correct = 0
         self.time_left = SESSION_SECONDS
         self.session_start = datetime.now()
+        self._second_chance_active = False
+        self._second_chance_item_id = None
         self.sm.current = "train"
         self._start_timer()
 
@@ -1323,24 +1337,72 @@ class JonMemApp(App):
         if self.session_index >= len(self.session_items):
             return
         item = self.session_items[self.session_index]
-        correct = self._evaluate_answer(text, item.get("answer", ""))
-        if correct:
+        expected = item.get("answer", "")
+        analysis = training.analyze_answer(text, expected)
+        level = int(item.get("stage", 1) or 1)
+
+        if self._second_chance_active and self._second_chance_item_id == item.get("id"):
+            correct = analysis.get("correct", False)
+            if correct:
+                self.session_correct += 1
+                if self._sound_success is not None:
+                    self._sound_success.play()
+                self._update_progress(item["id"], True)
+            else:
+                self._update_progress(item["id"], False)
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._second_chance_active = False
+            self._second_chance_item_id = None
+            self._show_answer_popup(item, correct, given_text=text)
+            self.screen_train.answer_input.text = ""
+            return
+
+        if analysis.get("correct", False):
             self.session_correct += 1
             if self._sound_success is not None:
                 self._sound_success.play()
             self._update_progress(item["id"], True)
-        else:
-            self._update_progress(item["id"], False)
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._show_answer_popup(item, True)
+            self.screen_train.answer_input.text = ""
+            return
+
+        second_chance, hint_lines = self._second_chance_hint(level, analysis, expected)
+        if second_chance:
+            self._second_chance_active = True
+            self._second_chance_item_id = item.get("id")
+            if self._sound_almost is not None:
+                self._sound_almost.play()
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._show_second_chance_popup(hint_lines)
+            return
+
+        self._update_progress(item["id"], False)
 
         # Pause timer while showing feedback
         if self._timer_event is not None:
             self._timer_event.cancel()
             self._timer_event = None
 
-        self._show_answer_popup(item, correct)
+        self._show_answer_popup(item, False, given_text=text)
         self.screen_train.answer_input.text = ""
 
-    def _show_answer_popup(self, item: dict, correct: bool) -> None:
+    def _show_answer_popup(self, item: dict, correct: bool, given_text: str = "") -> None:
         status = "Richtig" if correct else "Falsch"
         color = "00cc66" if correct else "ff4444"
         de_text = item.get("de", "")
@@ -1350,6 +1412,10 @@ class JonMemApp(App):
 
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
         layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
+        if not correct and given_text:
+            safe_given = escape_markup(given_text)
+            layout.add_widget(Label(text=f"Deine Eingabe: [s]{safe_given}[/s]",
+                                    markup=True, size_hint_y=None, height=_ui(26)))
         layout.add_widget(Label(text=f"Deutsch: {de_text}"))
         lang = (self.session_lang or "en").upper()
         layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
@@ -1371,8 +1437,70 @@ class JonMemApp(App):
         popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
         popup.open()
 
-    def _evaluate_answer(self, given: str, expected: str) -> bool:
-        return training.evaluate_answer(given, expected)
+    def _show_second_chance_popup(self, hint_lines: list[str]) -> None:
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        for line in hint_lines:
+            layout.add_widget(Label(text=line))
+
+        def _resume(_):
+            popup.dismiss()
+            self._start_timer()
+            self.update_training_view()
+
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_resume))
+        popup = _styled_popup(title="Fast richtig....", content=layout, size_hint=(0.8, 0.4))
+        popup.open()
+
+    def _second_chance_hint(self, level: int, analysis: dict, expected: str) -> tuple[bool, list[str]]:
+        if level >= 4:
+            return False, []
+        if not analysis.get("given_norm") or not analysis.get("expected_norm"):
+            return False, []
+        max_letters = 2 if level == 3 else 4
+        letter_errors = int(analysis.get("letter_errors", 0))
+        accent_errors = int(analysis.get("accent_errors", 0))
+        punct_errors = int(analysis.get("punct_errors", 0))
+        case_only = bool(analysis.get("case_only", False))
+        missing_word = bool(analysis.get("missing_word", False))
+
+        if letter_errors > max_letters:
+            return False, []
+
+        hints: list[str] = []
+        if level == 3:
+            if case_only:
+                hints.append("Achte auf Groß/Kleinschreibung.")
+            elif letter_errors > 0:
+                hints.append("guck noch mal genau")
+            else:
+                hints.append("Irgendwas stimmt noch nicht.")
+            return True, hints
+
+        if case_only:
+            hints.append("Achte auf Groß/Kleinschreibung.")
+        elif letter_errors > 0:
+            hints.append("guck noch mal genau")
+
+        if accent_errors > 0:
+            if "ñ" in expected or "Ñ" in expected:
+                hints.append("Achte auf die Tilde über dem n.")
+            else:
+                hints.append("Achte auf die Akzente.")
+
+        if punct_errors > 0:
+            if any(ch in expected for ch in ("'", "’", "´")):
+                hints.append("Achte auf das Apostroph.")
+            else:
+                hints.append("Achte auf die Satzzeichen.")
+
+        if level == 1 and missing_word:
+            hints.append("Hier fehlt noch ein Wort.")
+
+        if letter_errors > 0 and (accent_errors > 0 or punct_errors > 0):
+            total_errors = letter_errors + accent_errors + punct_errors
+            hints.append(f"Es gibt noch weitere Fehler (insgesamt {total_errors}).")
+
+        return True, hints
 
     def _update_progress(self, card_id: str, correct: bool) -> None:
         entry = self.progress.setdefault(card_id, {})

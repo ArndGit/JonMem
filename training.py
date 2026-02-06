@@ -1,13 +1,39 @@
 from __future__ import annotations
 
 import random
+import unicodedata
 from typing import Iterable
+
+
+def normalize_spaces(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    return " ".join(text.strip().split())
 
 
 def normalize_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
-    return " ".join("".join(ch for ch in text.lower().strip() if ch.isalnum() or ch.isspace()).split())
+    text = normalize_spaces(text)
+    return " ".join("".join(ch for ch in text.lower() if ch.isalnum() or ch.isspace()).split())
+
+
+def _is_punct(ch: str) -> bool:
+    return unicodedata.category(ch).startswith("P")
+
+
+def _strip_accents(text: str) -> str:
+    return "".join(ch for ch in unicodedata.normalize("NFD", text) if unicodedata.category(ch) != "Mn")
+
+
+def _letters_only(text: str) -> str:
+    return "".join(ch for ch in text if ch.isalnum())
+
+
+def strict_match(given: str, expected: str) -> bool:
+    if not isinstance(given, str) or not isinstance(expected, str):
+        return False
+    return normalize_spaces(given) == normalize_spaces(expected)
 
 
 def levenshtein(a: str, b: str) -> int:
@@ -29,19 +55,63 @@ def levenshtein(a: str, b: str) -> int:
     return prev[-1]
 
 
+def analyze_answer(given: str, expected: str) -> dict:
+    given_norm = normalize_spaces(given)
+    expected_norm = normalize_spaces(expected)
+    if not given_norm or not expected_norm:
+        return {
+            "correct": False,
+            "given_norm": given_norm,
+            "expected_norm": expected_norm,
+            "case_only": False,
+            "letter_errors": 0,
+            "accent_errors": 0,
+            "punct_errors": 0,
+            "missing_word": False,
+        }
+
+    correct = given_norm == expected_norm
+    given_case = given_norm.casefold()
+    expected_case = expected_norm.casefold()
+    case_only = (given_case == expected_case) and not correct
+
+    given_letters = _letters_only(_strip_accents(given_case))
+    expected_letters = _letters_only(_strip_accents(expected_case))
+    letter_errors = levenshtein(given_letters, expected_letters)
+
+    accent_errors = 0
+    if _strip_accents(given_case) == _strip_accents(expected_case) and given_case != expected_case:
+        if len(given_case) == len(expected_case):
+            for gch, ech in zip(given_case, expected_case):
+                if gch == ech:
+                    continue
+                if _strip_accents(gch) == _strip_accents(ech) and gch.isalpha() and ech.isalpha():
+                    accent_errors += 1
+        else:
+            accent_errors = levenshtein(_strip_accents(given_case), given_case)
+
+    given_punct = "".join(ch for ch in given_norm if _is_punct(ch))
+    expected_punct = "".join(ch for ch in expected_norm if _is_punct(ch))
+    punct_errors = levenshtein(given_punct, expected_punct)
+
+    given_words = [w for w in given_norm.split(" ") if w]
+    expected_words = [w for w in expected_norm.split(" ") if w]
+    missing_word = len(given_words) < len(expected_words)
+
+    return {
+        "correct": correct,
+        "given_norm": given_norm,
+        "expected_norm": expected_norm,
+        "case_only": case_only,
+        "letter_errors": letter_errors,
+        "accent_errors": accent_errors,
+        "punct_errors": punct_errors,
+        "missing_word": missing_word,
+    }
+
+
 def evaluate_answer(given: str, expected: str) -> bool:
-    a = normalize_text(given)
-    b = normalize_text(expected)
-    if not a or not b:
-        return False
-    if a == b:
-        return True
-    dist = levenshtein(a, b)
-    if len(b) <= 4:
-        return dist == 0
-    if len(b) <= 7:
-        return dist <= 1
-    return dist <= 2
+    return strict_match(given, expected)
 
 
 def shuffle_avoid_adjacent(items: list[dict], key: str, rng: random.Random | None = None,

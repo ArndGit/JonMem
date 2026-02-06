@@ -56,6 +56,25 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 - **Richtig:** Stufe +1 (max. 4)
 - **Falsch:** Stufe -1 (min. 1)
 
+## Antwortbewertung (Training)
+- **Doppelte Leerzeichen** werden immer ignoriert.
+- **EndgÃ¼ltig richtig** ist eine Antwort nur bei exakt richtiger Eingabe (GroÃ/Kleinschreibung, Akzente, Satzzeichen).
+- **Zweite Chance:** Nur bei Level 1â€“3 und nur innerhalb der jeweiligen Fehlergrenze.
+  - Titel des Hinweises: **Fast richtig....** (eigener Sound).
+
+### Level-Regeln
+- **Level 4:** Keine Ausnahmen, keine zweite Chance.
+- **Level 3:** Max. 2 Buchstaben Fehler fÃ¼r eine zweite Chance.
+  - Bei reinen GroÃ/Kleinschreibungsfehlern: Hinweis darauf.
+  - Sonst: Hinweis, dass etwas nicht stimmt (ohne Anzahl).
+- **Level 2:** Wie Level 3, aber bis 4 Buchstaben.
+  - ZusÃ¤tzlich explizite Hinweise auf Akzente/Apostroph/Satzzeichen.
+  - Bei Buchstabenfehlern **und** Akzent/Satzzeichen: Hinweis, dass es weitere Fehler gibt (mit Anzahl).
+- **Level 1:** Wie Level 2, plus Hinweis, wenn ein ganzes Wort fehlt.
+
+### AuflÃ¶sung
+- Wenn die Antwort endgÃ¼ltig falsch ist (keine zweite Chance mehr), wird die eigene Eingabe **durchgestrichen** neben der richtigen LÃ¶sung angezeigt.
+
 ## Lokales Debugging (uv)
 1. Abhängigkeiten installieren:
 ```bash
@@ -72,4 +91,3 @@ uv run python main.py
 ## Seed-Datenbank
 Die Seed-Datenbank liegt in `data/seed_vocab.yaml`.  
 Sie wird beim ersten Start in das User-Data-Verzeichnis kopiert.
-
