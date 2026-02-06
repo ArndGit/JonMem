@@ -1258,6 +1258,8 @@ class JonMemApp(App):
         self.vocab["cards"] = cards
         meta = self.vocab.setdefault("meta", {})
         target_langs = meta.get("target_langs") or []
+        if isinstance(target_langs, str):
+            target_langs = [target_langs]
         if lang not in target_langs:
             target_langs.append(lang)
         meta["target_langs"] = target_langs
