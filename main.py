@@ -45,6 +45,7 @@ except Exception:
 __version__ = "0.1"
 
 IS_ANDROID = (kivy_platform == "android")
+IS_IOS = (kivy_platform == "ios")
 
 SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.yaml")
 
@@ -983,6 +984,15 @@ class JonMemApp(App):
             self._last_exception = traceback.format_exc()
 
     def _ensure_seed_vocab(self) -> None:
+        # On desktop, always start from seed data to simplify debugging.
+        if not IS_ANDROID and not IS_IOS:
+            try:
+                os.makedirs(os.path.dirname(self.vocab_path), exist_ok=True)
+                with open(SEED_VOCAB_PATH, "rb") as src, open(self.vocab_path, "wb") as dst:
+                    dst.write(src.read())
+            except Exception as exc:
+                self._log_error("seed copy failed", exc)
+            return
         if os.path.exists(self.vocab_path):
             return
         try:
