@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import unicodedata
 from typing import Iterable
+from datetime import datetime
 
 
 def normalize_spaces(text: str) -> str:
@@ -139,6 +140,41 @@ def shuffle_avoid_adjacent(items: list[dict], key: str, rng: random.Random | Non
     return items
 
 
+def parse_iso(ts: str) -> datetime | None:
+    if not isinstance(ts, str) or not ts:
+        return None
+    try:
+        if ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        return datetime.fromisoformat(ts)
+    except Exception:
+        return None
+
+
+def days_since(ts: str | None) -> float:
+    if not ts:
+        return 9999.0
+    parsed = parse_iso(ts)
+    if parsed is None:
+        return 9999.0
+    return (datetime.now() - parsed).total_seconds() / 86400.0
+
+
+def target_days(stage: int) -> int:
+    mapping = {1: 1, 2: 3, 3: 7, 4: 21}
+    return mapping.get(int(stage or 1), 21)
+
+
+def priority(item: dict, rng: random.Random | None = None) -> float:
+    rng = rng or random
+    stage = int(item.get("stage", 1) or 1)
+    overdue = days_since(item.get("last_seen")) / target_days(stage)
+    if item.get("last_result") is False:
+        overdue += 0.5
+    overdue += rng.random() * 0.01
+    return overdue
+
+
 def compute_next_stage(stage: int, correct: bool, max_stage: int) -> int:
     stage = int(stage or 1)
     if correct:
@@ -192,6 +228,8 @@ def build_session_items(
             "stage": stage,
             "topic": card.get("topic"),
             "lang": card.get("lang", "en"),
+            "last_seen": prog.get("last_seen") if prog else None,
+            "last_result": prog.get("last_result") if prog else None,
         })
 
     if mode == "introduce":
@@ -206,7 +244,7 @@ def build_session_items(
         for item in items:
             stage_pools.get(item.get("stage", 1), stage_pools[1]).append(item)
         for pool in stage_pools.values():
-            rng.shuffle(pool)
+            pool.sort(key=lambda entry: priority(entry, rng), reverse=True)
 
         weight_pattern = []
         for stage in range(1, max_stage + 1):
@@ -221,10 +259,17 @@ def build_session_items(
                     break
                 pool = stage_pools.get(stage)
                 if pool:
-                    session.append(pool.pop())
+                    session.append(pool.pop(0))
                     added_any = True
             if not added_any:
                 break
+        if len(session) < max_items:
+            rest: list[dict] = []
+            for pool in stage_pools.values():
+                rest.extend(pool)
+            rest.sort(key=lambda entry: priority(entry, rng), reverse=True)
+            remaining = max_items - len(session)
+            session.extend(rest[:remaining])
         rng.shuffle(session)
         return session
 

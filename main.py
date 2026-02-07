@@ -1108,6 +1108,26 @@ class JonMemApp(App):
                 cards.append(card)
         return cards
 
+    def _get_card_by_id(self, card_id: str) -> dict | None:
+        if not card_id:
+            return None
+        for card in self.vocab.get("cards", []):
+            if card.get("id") == card_id:
+                return card
+        return None
+
+    def _save_card_mnemonic(self, card_id: str | None, text: str) -> None:
+        if not card_id:
+            return
+        card = self._get_card_by_id(card_id)
+        if not card:
+            return
+        cleaned = (text or "").strip()
+        if card.get("mnemonic", "") == cleaned:
+            return
+        card["mnemonic"] = cleaned
+        self._save_vocab()
+
     def show_training_setup(self) -> None:
         self.sm.current = "setup"
 
@@ -1348,6 +1368,7 @@ class JonMemApp(App):
             "en": en,
             "hint_de_to_en": hint_de,
             "hint_en_to_de": hint_en,
+            "mnemonic": "",
         })
         self.vocab["cards"] = cards
         meta = self.vocab.setdefault("meta", {})
@@ -1444,6 +1465,7 @@ class JonMemApp(App):
             "en": card.get("en", ""),
             "hint_de_to_en": card.get("hint_de_to_en", ""),
             "hint_en_to_de": card.get("hint_en_to_de", ""),
+            "mnemonic": card.get("mnemonic", ""),
             "stage": 1,
             "topic": card.get("topic"),
             "lang": card.get("lang", "en"),
@@ -1576,6 +1598,11 @@ class JonMemApp(App):
         en_text = item.get("en", "")
         hint_de = item.get("hint_de_to_en", "")
         hint_en = item.get("hint_en_to_de", "")
+        mnemonic_text = item.get("mnemonic", "")
+        if not mnemonic_text:
+            card = self._get_card_by_id(item.get("id"))
+            if card:
+                mnemonic_text = card.get("mnemonic", "")
 
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
         layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
@@ -1586,12 +1613,17 @@ class JonMemApp(App):
         layout.add_widget(Label(text=f"Deutsch: {de_text}"))
         lang = (self.session_lang or "en").upper()
         layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
+        layout.add_widget(Label(text="Eselsbrücke/Notiz (optional)"))
+        mnemonic_input = _styled_text_input(text=mnemonic_text, multiline=True, size_hint_y=None, height=_ui(110))
+        layout.add_widget(mnemonic_input)
         if hint_de:
             layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
         if hint_en:
             layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
 
         def _next(_):
+            self._save_card_mnemonic(item.get("id"), mnemonic_input.text)
+            item["mnemonic"] = (mnemonic_input.text or "").strip()
             popup.dismiss()
             self.session_index += 1
             if self.session_index >= len(self.session_items):
