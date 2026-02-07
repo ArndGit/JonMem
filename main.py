@@ -1438,9 +1438,7 @@ class JonMemApp(App):
                          on_release=lambda _btn, tid=item["id"]: _select(tid))
             list_box.add_widget(btn)
 
-        scroll = ScrollView(size_hint=(1, 1))
-        scroll.add_widget(list_box)
-        box.add_widget(scroll)
+        box.add_widget(list_box)
 
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
@@ -1477,9 +1475,7 @@ class JonMemApp(App):
                                   height=_ui(BASE_BUTTON_HEIGHT))
             list_box.add_widget(toggle)
             toggles.append((topic["id"], toggle))
-        scroll = ScrollView(size_hint=(1, 1))
-        scroll.add_widget(list_box)
-        box.add_widget(scroll)
+        box.add_widget(list_box)
 
         def do_save(_):
             chosen = [topic_id for topic_id, toggle in toggles if toggle.state == "down"]
@@ -1524,9 +1520,7 @@ class JonMemApp(App):
             btn = Button(text=label, size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                          on_release=lambda _btn, tid=topic["id"]: _select(tid))
             list_box.add_widget(btn)
-        scroll = ScrollView(size_hint=(1, 1))
-        scroll.add_widget(list_box)
-        box.add_widget(scroll)
+        box.add_widget(list_box)
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
         box.add_widget(btn_row)
