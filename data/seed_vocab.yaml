@@ -1,2272 +1,2271 @@
 meta:
   source_lang: de
   target_langs:
-    - en
-  topic: "Englisch Grundschule Baden-Württemberg Klasse 4"
-  note: "Wortschatz nach Themen (Klasse 4). Einträge konsistent: deutsche Nomen mit Artikel, keine Satzzeichen."
-
+  - en
+  topic: Englisch Grundschule Baden-Württemberg Klasse 4
+  note: 'Wortschatz nach Themen (Klasse 4). Einträge konsistent: deutsche Nomen mit
+    Artikel, keine Satzzeichen.'
 topics:
-  - id: family4
-    name: "Ich, meine Familie und Freunde 4"
-    lang: en
-  - id: body4
-    name: "Körper und Gefühle 4"
-    lang: en
-  - id: clothes4
-    name: "Kleidung 4"
-    lang: en
-  - id: school4
-    name: "Schule und Umgebung 4"
-    lang: en
-  - id: home4
-    name: "Zu Hause / Tagesablauf 4"
-    lang: en
-  - id: food4
-    name: "Essen, Trinken und Einkaufen 4"
-    lang: en
-  - id: animals4
-    name: "Tiere 4"
-    lang: en
-  - id: leisure4
-    name: "Freizeit 4"
-    lang: en
-  - id: weather4
-    name: "Wetter 4"
-    lang: en
-  - id: yearfest4
-    name: "Jahr und Feste 4"
-    lang: en
-  - id: colours4
-    name: "Farben 4"
-    lang: en
-  - id: time4
-    name: "Zahlen, Datum, Uhrzeit 4"
-    lang: en
-
+- id: family4
+  name: Ich, meine Familie und Freunde 4
+  lang: en
+- id: body4
+  name: Körper und Gefühle 4
+  lang: en
+- id: clothes4
+  name: Kleidung 4
+  lang: en
+- id: school4
+  name: Schule und Umgebung 4
+  lang: en
+- id: home4
+  name: Zu Hause / Tagesablauf 4
+  lang: en
+- id: food4
+  name: Essen, Trinken und Einkaufen 4
+  lang: en
+- id: animals4
+  name: Tiere 4
+  lang: en
+- id: leisure4
+  name: Freizeit 4
+  lang: en
+- id: weather4
+  name: Wetter 4
+  lang: en
+- id: yearfest4
+  name: Jahr und Feste 4
+  lang: en
+- id: colours4
+  name: Farben 4
+  lang: en
+- id: time4
+  name: Zahlen, Datum, Uhrzeit 4
+  lang: en
 cards:
-  - id: family4_001_en
-    topic: family4
-    lang: en
-    de: "die Familie"
-    en: "the family"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_002_en
-    topic: family4
-    lang: en
-    de: "die Mutter"
-    en: "the mother"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_003_en
-    topic: family4
-    lang: en
-    de: "der Vater"
-    en: "the father"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_004_en
-    topic: family4
-    lang: en
-    de: "die Eltern"
-    en: "the parents"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_005_en
-    topic: family4
-    lang: en
-    de: "der Bruder"
-    en: "the brother"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_006_en
-    topic: family4
-    lang: en
-    de: "die Schwester"
-    en: "the sister"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_007_en
-    topic: family4
-    lang: en
-    de: "die Oma"
-    en: "the grandma"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_008_en
-    topic: family4
-    lang: en
-    de: "der Opa"
-    en: "the grandpa"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_009_en
-    topic: family4
-    lang: en
-    de: "der Cousin"
-    en: "the cousin"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_010_en
-    topic: family4
-    lang: en
-    de: "die Cousine"
-    en: "the cousin"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_011_en
-    topic: family4
-    lang: en
-    de: "der Freund"
-    en: "the friend"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_012_en
-    topic: family4
-    lang: en
-    de: "die Freundin"
-    en: "the friend"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_013_en
-    topic: family4
-    lang: en
-    de: "die beste Freundin"
-    en: "the best friend"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_014_en
-    topic: family4
-    lang: en
-    de: "das Haustier"
-    en: "the pet"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_015_en
-    topic: family4
-    lang: en
-    de: "der Name"
-    en: "the name"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_016_en
-    topic: family4
-    lang: en
-    de: "das Alter"
-    en: "the age"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_017_en
-    topic: family4
-    lang: en
-    de: "der Geburtstag"
-    en: "the birthday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_018_en
-    topic: family4
-    lang: en
-    de: "die Party"
-    en: "the party"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_019_en
-    topic: family4
-    lang: en
-    de: "das Hobby"
-    en: "the hobby"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_020_en
-    topic: family4
-    lang: en
-    de: "das Wochenende"
-    en: "the weekend"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_021_en
-    topic: family4
-    lang: en
-    de: "bitte"
-    en: "please"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_022_en
-    topic: family4
-    lang: en
-    de: "danke"
-    en: "thanks"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_023_en
-    topic: family4
-    lang: en
-    de: "entschuldige"
-    en: "sorry"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_024_en
-    topic: family4
-    lang: en
-    de: "hallo"
-    en: "hello"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: family4_025_en
-    topic: family4
-    lang: en
-    de: "tschüss"
-    en: "bye"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_001_en
-    topic: body4
-    lang: en
-    de: "der Kopf"
-    en: "the head"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_002_en
-    topic: body4
-    lang: en
-    de: "die Haare"
-    en: "hair"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_003_en
-    topic: body4
-    lang: en
-    de: "das Auge"
-    en: "the eye"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_004_en
-    topic: body4
-    lang: en
-    de: "das Ohr"
-    en: "the ear"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_005_en
-    topic: body4
-    lang: en
-    de: "die Nase"
-    en: "the nose"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_006_en
-    topic: body4
-    lang: en
-    de: "der Mund"
-    en: "the mouth"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_007_en
-    topic: body4
-    lang: en
-    de: "der Zahn"
-    en: "the tooth"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_008_en
-    topic: body4
-    lang: en
-    de: "der Arm"
-    en: "the arm"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_009_en
-    topic: body4
-    lang: en
-    de: "die Hand"
-    en: "the hand"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_010_en
-    topic: body4
-    lang: en
-    de: "das Bein"
-    en: "the leg"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_011_en
-    topic: body4
-    lang: en
-    de: "der Fuß"
-    en: "the foot"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_012_en
-    topic: body4
-    lang: en
-    de: "der Rücken"
-    en: "the back"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_013_en
-    topic: body4
-    lang: en
-    de: "der Bauch"
-    en: "the stomach"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_014_en
-    topic: body4
-    lang: en
-    de: "krank"
-    en: "ill"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_015_en
-    topic: body4
-    lang: en
-    de: "gesund"
-    en: "healthy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_016_en
-    topic: body4
-    lang: en
-    de: "hungrig"
-    en: "hungry"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_017_en
-    topic: body4
-    lang: en
-    de: "durstig"
-    en: "thirsty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_018_en
-    topic: body4
-    lang: en
-    de: "müde"
-    en: "tired"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_019_en
-    topic: body4
-    lang: en
-    de: "glücklich"
-    en: "happy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_020_en
-    topic: body4
-    lang: en
-    de: "traurig"
-    en: "sad"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_021_en
-    topic: body4
-    lang: en
-    de: "wütend"
-    en: "angry"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_022_en
-    topic: body4
-    lang: en
-    de: "ängstlich"
-    en: "scared"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_023_en
-    topic: body4
-    lang: en
-    de: "kalt"
-    en: "cold"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_024_en
-    topic: body4
-    lang: en
-    de: "heiß"
-    en: "hot"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: body4_025_en
-    topic: body4
-    lang: en
-    de: "gut"
-    en: "fine"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_001_en
-    topic: clothes4
-    lang: en
-    de: "das Kleid"
-    en: "the dress"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_002_en
-    topic: clothes4
-    lang: en
-    de: "das T-Shirt"
-    en: "the T-shirt"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_003_en
-    topic: clothes4
-    lang: en
-    de: "das Hemd"
-    en: "the shirt"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_004_en
-    topic: clothes4
-    lang: en
-    de: "die Hose"
-    en: "the trousers"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_005_en
-    topic: clothes4
-    lang: en
-    de: "die Jeans"
-    en: "jeans"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_006_en
-    topic: clothes4
-    lang: en
-    de: "der Pullover"
-    en: "the pullover"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_007_en
-    topic: clothes4
-    lang: en
-    de: "die Jacke"
-    en: "the jacket"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_008_en
-    topic: clothes4
-    lang: en
-    de: "der Mantel"
-    en: "the coat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_009_en
-    topic: clothes4
-    lang: en
-    de: "die Schuhe"
-    en: "shoes"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_010_en
-    topic: clothes4
-    lang: en
-    de: "die Socken"
-    en: "socks"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_011_en
-    topic: clothes4
-    lang: en
-    de: "der Hut"
-    en: "the hat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_012_en
-    topic: clothes4
-    lang: en
-    de: "die Mütze"
-    en: "the cap"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_013_en
-    topic: clothes4
-    lang: en
-    de: "der Schal"
-    en: "the scarf"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_014_en
-    topic: clothes4
-    lang: en
-    de: "die Handschuhe"
-    en: "gloves"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_015_en
-    topic: clothes4
-    lang: en
-    de: "der Rock"
-    en: "the skirt"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_016_en
-    topic: clothes4
-    lang: en
-    de: "die Shorts"
-    en: "shorts"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_017_en
-    topic: clothes4
-    lang: en
-    de: "die Turnschuhe"
-    en: "trainers"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_018_en
-    topic: clothes4
-    lang: en
-    de: "die Stiefel"
-    en: "boots"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_019_en
-    topic: clothes4
-    lang: en
-    de: "der Regenmantel"
-    en: "the raincoat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_020_en
-    topic: clothes4
-    lang: en
-    de: "der Badeanzug"
-    en: "the swimsuit"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_021_en
-    topic: clothes4
-    lang: en
-    de: "die Brille"
-    en: "glasses"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_022_en
-    topic: clothes4
-    lang: en
-    de: "anziehen"
-    en: "to put on"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_023_en
-    topic: clothes4
-    lang: en
-    de: "ausziehen"
-    en: "to take off"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: clothes4_024_en
-    topic: clothes4
-    lang: en
-    de: "tragen"
-    en: "to wear"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_001_en
-    topic: school4
-    lang: en
-    de: "die Schule"
-    en: "the school"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_002_en
-    topic: school4
-    lang: en
-    de: "das Klassenzimmer"
-    en: "the classroom"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_003_en
-    topic: school4
-    lang: en
-    de: "die Klasse"
-    en: "the class"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_004_en
-    topic: school4
-    lang: en
-    de: "der Lehrer"
-    en: "the teacher"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_005_en
-    topic: school4
-    lang: en
-    de: "die Lehrerin"
-    en: "the teacher"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_006_en
-    topic: school4
-    lang: en
-    de: "die Tafel"
-    en: "the board"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_007_en
-    topic: school4
-    lang: en
-    de: "der Stuhl"
-    en: "the chair"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_008_en
-    topic: school4
-    lang: en
-    de: "der Tisch"
-    en: "the desk"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_009_en
-    topic: school4
-    lang: en
-    de: "das Buch"
-    en: "the book"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_010_en
-    topic: school4
-    lang: en
-    de: "das Heft"
-    en: "the exercise book"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_011_en
-    topic: school4
-    lang: en
-    de: "der Bleistift"
-    en: "the pencil"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_012_en
-    topic: school4
-    lang: en
-    de: "der Kugelschreiber"
-    en: "the pen"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_013_en
-    topic: school4
-    lang: en
-    de: "der Radiergummi"
-    en: "the rubber"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_014_en
-    topic: school4
-    lang: en
-    de: "das Lineal"
-    en: "the ruler"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_015_en
-    topic: school4
-    lang: en
-    de: "die Schultasche"
-    en: "the schoolbag"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_016_en
-    topic: school4
-    lang: en
-    de: "die Hausaufgaben"
-    en: "homework"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_017_en
-    topic: school4
-    lang: en
-    de: "die Pause"
-    en: "the break"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_018_en
-    topic: school4
-    lang: en
-    de: "der Schulhof"
-    en: "the playground"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_019_en
-    topic: school4
-    lang: en
-    de: "die Bibliothek"
-    en: "the library"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_020_en
-    topic: school4
-    lang: en
-    de: "der Stundenplan"
-    en: "the timetable"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_021_en
-    topic: school4
-    lang: en
-    de: "die Stunde"
-    en: "the lesson"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_022_en
-    topic: school4
-    lang: en
-    de: "der Computer"
-    en: "the computer"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_023_en
-    topic: school4
-    lang: en
-    de: "die Karte"
-    en: "the map"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_024_en
-    topic: school4
-    lang: en
-    de: "das Bild"
-    en: "the picture"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: school4_025_en
-    topic: school4
-    lang: en
-    de: "lesen"
-    en: "to read"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_001_en
-    topic: home4
-    lang: en
-    de: "das Haus"
-    en: "the house"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_002_en
-    topic: home4
-    lang: en
-    de: "die Wohnung"
-    en: "the flat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_003_en
-    topic: home4
-    lang: en
-    de: "das Zimmer"
-    en: "the room"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_004_en
-    topic: home4
-    lang: en
-    de: "die Küche"
-    en: "the kitchen"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_005_en
-    topic: home4
-    lang: en
-    de: "das Badezimmer"
-    en: "the bathroom"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_006_en
-    topic: home4
-    lang: en
-    de: "das Schlafzimmer"
-    en: "the bedroom"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_007_en
-    topic: home4
-    lang: en
-    de: "das Wohnzimmer"
-    en: "the living room"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_008_en
-    topic: home4
-    lang: en
-    de: "der Garten"
-    en: "the garden"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_009_en
-    topic: home4
-    lang: en
-    de: "die Tür"
-    en: "the door"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_010_en
-    topic: home4
-    lang: en
-    de: "das Fenster"
-    en: "the window"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_011_en
-    topic: home4
-    lang: en
-    de: "das Bett"
-    en: "the bed"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_012_en
-    topic: home4
-    lang: en
-    de: "der Tisch"
-    en: "the table"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_013_en
-    topic: home4
-    lang: en
-    de: "die Lampe"
-    en: "the lamp"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_014_en
-    topic: home4
-    lang: en
-    de: "der Fernseher"
-    en: "the TV"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_015_en
-    topic: home4
-    lang: en
-    de: "frühstücken"
-    en: "to have breakfast"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_016_en
-    topic: home4
-    lang: en
-    de: "zu Mittag essen"
-    en: "to have lunch"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_017_en
-    topic: home4
-    lang: en
-    de: "zu Abend essen"
-    en: "to have dinner"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_018_en
-    topic: home4
-    lang: en
-    de: "aufstehen"
-    en: "to get up"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_019_en
-    topic: home4
-    lang: en
-    de: "ins Bett gehen"
-    en: "to go to bed"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_020_en
-    topic: home4
-    lang: en
-    de: "waschen"
-    en: "to wash"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_021_en
-    topic: home4
-    lang: en
-    de: "Zähne putzen"
-    en: "to brush teeth"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_022_en
-    topic: home4
-    lang: en
-    de: "aufgeräumt"
-    en: "tidy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_023_en
-    topic: home4
-    lang: en
-    de: "unordentlich"
-    en: "messy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: home4_024_en
-    topic: home4
-    lang: en
-    de: "helfen"
-    en: "to help"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_001_en
-    topic: food4
-    lang: en
-    de: "das Brot"
-    en: "bread"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_002_en
-    topic: food4
-    lang: en
-    de: "die Butter"
-    en: "butter"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_003_en
-    topic: food4
-    lang: en
-    de: "der Käse"
-    en: "cheese"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_004_en
-    topic: food4
-    lang: en
-    de: "das Ei"
-    en: "the egg"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_005_en
-    topic: food4
-    lang: en
-    de: "das Hähnchen"
-    en: "chicken"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_006_en
-    topic: food4
-    lang: en
-    de: "die Pommes"
-    en: "chips"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_007_en
-    topic: food4
-    lang: en
-    de: "die Schokolade"
-    en: "chocolate"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_008_en
-    topic: food4
-    lang: en
-    de: "die Süßigkeiten"
-    en: "sweets"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_009_en
-    topic: food4
-    lang: en
-    de: "das Obst"
-    en: "fruit"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_010_en
-    topic: food4
-    lang: en
-    de: "der Apfel"
-    en: "the apple"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_011_en
-    topic: food4
-    lang: en
-    de: "die Erdbeere"
-    en: "the strawberry"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_012_en
-    topic: food4
-    lang: en
-    de: "die Pflaume"
-    en: "the plum"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_013_en
-    topic: food4
-    lang: en
-    de: "die Tomate"
-    en: "the tomato"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_014_en
-    topic: food4
-    lang: en
-    de: "der Salat"
-    en: "salad"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_015_en
-    topic: food4
-    lang: en
-    de: "das Wasser"
-    en: "water"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_016_en
-    topic: food4
-    lang: en
-    de: "der Tee"
-    en: "tea"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_017_en
-    topic: food4
-    lang: en
-    de: "der Saft"
-    en: "juice"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_018_en
-    topic: food4
-    lang: en
-    de: "die Milch"
-    en: "milk"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_019_en
-    topic: food4
-    lang: en
-    de: "die Limonade"
-    en: "lemonade"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_020_en
-    topic: food4
-    lang: en
-    de: "das Getränk"
-    en: "the drink"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_021_en
-    topic: food4
-    lang: en
-    de: "essen"
-    en: "to eat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_022_en
-    topic: food4
-    lang: en
-    de: "trinken"
-    en: "to drink"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_023_en
-    topic: food4
-    lang: en
-    de: "der Laden"
-    en: "the shop"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_024_en
-    topic: food4
-    lang: en
-    de: "einkaufen"
-    en: "to shop"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: food4_025_en
-    topic: food4
-    lang: en
-    de: "das Geld"
-    en: "money"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_001_en
-    topic: animals4
-    lang: en
-    de: "der Hund"
-    en: "the dog"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_002_en
-    topic: animals4
-    lang: en
-    de: "die Katze"
-    en: "the cat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_003_en
-    topic: animals4
-    lang: en
-    de: "die Maus"
-    en: "the mouse"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_004_en
-    topic: animals4
-    lang: en
-    de: "das Kaninchen"
-    en: "the rabbit"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_005_en
-    topic: animals4
-    lang: en
-    de: "der Fisch"
-    en: "the fish"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_006_en
-    topic: animals4
-    lang: en
-    de: "der Hamster"
-    en: "the hamster"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_007_en
-    topic: animals4
-    lang: en
-    de: "das Pferd"
-    en: "the horse"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_008_en
-    topic: animals4
-    lang: en
-    de: "der Vogel"
-    en: "the bird"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_009_en
-    topic: animals4
-    lang: en
-    de: "die Kuh"
-    en: "the cow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_010_en
-    topic: animals4
-    lang: en
-    de: "das Schwein"
-    en: "the pig"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_011_en
-    topic: animals4
-    lang: en
-    de: "das Schaf"
-    en: "the sheep"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_012_en
-    topic: animals4
-    lang: en
-    de: "die Ziege"
-    en: "the goat"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_013_en
-    topic: animals4
-    lang: en
-    de: "die Ente"
-    en: "the duck"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_014_en
-    topic: animals4
-    lang: en
-    de: "der Frosch"
-    en: "the frog"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_015_en
-    topic: animals4
-    lang: en
-    de: "der Bär"
-    en: "the bear"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_016_en
-    topic: animals4
-    lang: en
-    de: "der Fuchs"
-    en: "the fox"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_017_en
-    topic: animals4
-    lang: en
-    de: "der Hirsch"
-    en: "the deer"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_018_en
-    topic: animals4
-    lang: en
-    de: "der Löwe"
-    en: "the lion"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_019_en
-    topic: animals4
-    lang: en
-    de: "der Elefant"
-    en: "the elephant"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_020_en
-    topic: animals4
-    lang: en
-    de: "die Schlange"
-    en: "the snake"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_021_en
-    topic: animals4
-    lang: en
-    de: "wild"
-    en: "wild"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_022_en
-    topic: animals4
-    lang: en
-    de: "zahm"
-    en: "tame"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_023_en
-    topic: animals4
-    lang: en
-    de: "groß"
-    en: "big"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: animals4_024_en
-    topic: animals4
-    lang: en
-    de: "klein"
-    en: "small"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_001_en
-    topic: leisure4
-    lang: en
-    de: "das Hobby"
-    en: "the hobby"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_002_en
-    topic: leisure4
-    lang: en
-    de: "der Sport"
-    en: "the sport"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_003_en
-    topic: leisure4
-    lang: en
-    de: "Fußball spielen"
-    en: "to play football"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_004_en
-    topic: leisure4
-    lang: en
-    de: "Tennis spielen"
-    en: "to play tennis"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_005_en
-    topic: leisure4
-    lang: en
-    de: "schwimmen"
-    en: "to swim"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_006_en
-    topic: leisure4
-    lang: en
-    de: "reiten"
-    en: "to ride"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_007_en
-    topic: leisure4
-    lang: en
-    de: "laufen"
-    en: "to run"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_008_en
-    topic: leisure4
-    lang: en
-    de: "springen"
-    en: "to jump"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_009_en
-    topic: leisure4
-    lang: en
-    de: "tanzen"
-    en: "to dance"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_010_en
-    topic: leisure4
-    lang: en
-    de: "singen"
-    en: "to sing"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_011_en
-    topic: leisure4
-    lang: en
-    de: "malen"
-    en: "to paint"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_012_en
-    topic: leisure4
-    lang: en
-    de: "zeichnen"
-    en: "to draw"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_013_en
-    topic: leisure4
-    lang: en
-    de: "lesen"
-    en: "to read"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_014_en
-    topic: leisure4
-    lang: en
-    de: "Musik hören"
-    en: "to listen to music"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_015_en
-    topic: leisure4
-    lang: en
-    de: "fernsehen"
-    en: "to watch TV"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_016_en
-    topic: leisure4
-    lang: en
-    de: "Computer spielen"
-    en: "to play computer games"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_017_en
-    topic: leisure4
-    lang: en
-    de: "Fahrrad fahren"
-    en: "to go cycling"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_018_en
-    topic: leisure4
-    lang: en
-    de: "skaten"
-    en: "to skate"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_019_en
-    topic: leisure4
-    lang: en
-    de: "sich treffen"
-    en: "to meet"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_020_en
-    topic: leisure4
-    lang: en
-    de: "der Park"
-    en: "the park"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_021_en
-    topic: leisure4
-    lang: en
-    de: "der Spielplatz"
-    en: "the playground"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_022_en
-    topic: leisure4
-    lang: en
-    de: "das Wochenende"
-    en: "the weekend"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_023_en
-    topic: leisure4
-    lang: en
-    de: "Spaß haben"
-    en: "to have fun"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: leisure4_024_en
-    topic: leisure4
-    lang: en
-    de: "spielen"
-    en: "to play"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_001_en
-    topic: weather4
-    lang: en
-    de: "die Sonne"
-    en: "the sun"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_002_en
-    topic: weather4
-    lang: en
-    de: "sonnig"
-    en: "sunny"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_003_en
-    topic: weather4
-    lang: en
-    de: "der Regen"
-    en: "the rain"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_004_en
-    topic: weather4
-    lang: en
-    de: "regnerisch"
-    en: "rainy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_005_en
-    topic: weather4
-    lang: en
-    de: "die Wolke"
-    en: "the cloud"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_006_en
-    topic: weather4
-    lang: en
-    de: "bewölkt"
-    en: "cloudy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_007_en
-    topic: weather4
-    lang: en
-    de: "der Wind"
-    en: "the wind"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_008_en
-    topic: weather4
-    lang: en
-    de: "windig"
-    en: "windy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_009_en
-    topic: weather4
-    lang: en
-    de: "der Schnee"
-    en: "the snow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_010_en
-    topic: weather4
-    lang: en
-    de: "schneit"
-    en: "it is snowing"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_011_en
-    topic: weather4
-    lang: en
-    de: "der Sturm"
-    en: "the storm"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_012_en
-    topic: weather4
-    lang: en
-    de: "neblig"
-    en: "foggy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_013_en
-    topic: weather4
-    lang: en
-    de: "warm"
-    en: "warm"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_014_en
-    topic: weather4
-    lang: en
-    de: "kühl"
-    en: "cool"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_015_en
-    topic: weather4
-    lang: en
-    de: "kalt"
-    en: "cold"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_016_en
-    topic: weather4
-    lang: en
-    de: "heiß"
-    en: "hot"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_017_en
-    topic: weather4
-    lang: en
-    de: "der Regenbogen"
-    en: "the rainbow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_018_en
-    topic: weather4
-    lang: en
-    de: "der Regenschirm"
-    en: "the umbrella"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_019_en
-    topic: weather4
-    lang: en
-    de: "die Jahreszeit"
-    en: "the season"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_020_en
-    topic: weather4
-    lang: en
-    de: "der Frühling"
-    en: "spring"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_021_en
-    topic: weather4
-    lang: en
-    de: "der Sommer"
-    en: "summer"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_022_en
-    topic: weather4
-    lang: en
-    de: "der Herbst"
-    en: "autumn"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_023_en
-    topic: weather4
-    lang: en
-    de: "der Winter"
-    en: "winter"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: weather4_024_en
-    topic: weather4
-    lang: en
-    de: "das Wetter"
-    en: "the weather"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_001_en
-    topic: yearfest4
-    lang: en
-    de: "das Jahr"
-    en: "the year"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_002_en
-    topic: yearfest4
-    lang: en
-    de: "der Monat"
-    en: "the month"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_003_en
-    topic: yearfest4
-    lang: en
-    de: "die Woche"
-    en: "the week"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_004_en
-    topic: yearfest4
-    lang: en
-    de: "der Tag"
-    en: "the day"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_005_en
-    topic: yearfest4
-    lang: en
-    de: "heute"
-    en: "today"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_006_en
-    topic: yearfest4
-    lang: en
-    de: "morgen"
-    en: "tomorrow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_007_en
-    topic: yearfest4
-    lang: en
-    de: "gestern"
-    en: "yesterday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_008_en
-    topic: yearfest4
-    lang: en
-    de: "der Geburtstag"
-    en: "the birthday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_009_en
-    topic: yearfest4
-    lang: en
-    de: "das Geschenk"
-    en: "the present"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_010_en
-    topic: yearfest4
-    lang: en
-    de: "die Karte"
-    en: "the card"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_011_en
-    topic: yearfest4
-    lang: en
-    de: "die Kerze"
-    en: "the candle"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_012_en
-    topic: yearfest4
-    lang: en
-    de: "Weihnachten"
-    en: "Christmas"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_013_en
-    topic: yearfest4
-    lang: en
-    de: "Ostern"
-    en: "Easter"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_014_en
-    topic: yearfest4
-    lang: en
-    de: "Halloween"
-    en: "Halloween"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_015_en
-    topic: yearfest4
-    lang: en
-    de: "Neujahr"
-    en: "New Year"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_016_en
-    topic: yearfest4
-    lang: en
-    de: "der Advent"
-    en: "Advent"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_017_en
-    topic: yearfest4
-    lang: en
-    de: "die Ferien"
-    en: "holidays"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_018_en
-    topic: yearfest4
-    lang: en
-    de: "die Sommerferien"
-    en: "summer holidays"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_019_en
-    topic: yearfest4
-    lang: en
-    de: "die Schulfrei"
-    en: "day off"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_020_en
-    topic: yearfest4
-    lang: en
-    de: "der Feiertag"
-    en: "the holiday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_021_en
-    topic: yearfest4
-    lang: en
-    de: "feiern"
-    en: "to celebrate"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_022_en
-    topic: yearfest4
-    lang: en
-    de: "einladen"
-    en: "to invite"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_023_en
-    topic: yearfest4
-    lang: en
-    de: "kommen"
-    en: "to come"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: yearfest4_024_en
-    topic: yearfest4
-    lang: en
-    de: "gehen"
-    en: "to go"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_001_en
-    topic: colours4
-    lang: en
-    de: "schwarz"
-    en: "black"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_002_en
-    topic: colours4
-    lang: en
-    de: "weiß"
-    en: "white"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_003_en
-    topic: colours4
-    lang: en
-    de: "rot"
-    en: "red"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_004_en
-    topic: colours4
-    lang: en
-    de: "blau"
-    en: "blue"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_005_en
-    topic: colours4
-    lang: en
-    de: "grün"
-    en: "green"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_006_en
-    topic: colours4
-    lang: en
-    de: "gelb"
-    en: "yellow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_007_en
-    topic: colours4
-    lang: en
-    de: "braun"
-    en: "brown"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_008_en
-    topic: colours4
-    lang: en
-    de: "orange"
-    en: "orange"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_009_en
-    topic: colours4
-    lang: en
-    de: "rosa"
-    en: "pink"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_010_en
-    topic: colours4
-    lang: en
-    de: "grau"
-    en: "grey"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_011_en
-    topic: colours4
-    lang: en
-    de: "lila"
-    en: "purple"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_012_en
-    topic: colours4
-    lang: en
-    de: "hell"
-    en: "light"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_013_en
-    topic: colours4
-    lang: en
-    de: "dunkel"
-    en: "dark"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_014_en
-    topic: colours4
-    lang: en
-    de: "bunt"
-    en: "colourful"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_015_en
-    topic: colours4
-    lang: en
-    de: "die Farbe"
-    en: "the colour"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_016_en
-    topic: colours4
-    lang: en
-    de: "Lieblingsfarbe"
-    en: "favourite colour"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_017_en
-    topic: colours4
-    lang: en
-    de: "der Regenbogen"
-    en: "the rainbow"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_018_en
-    topic: colours4
-    lang: en
-    de: "das Muster"
-    en: "the pattern"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_019_en
-    topic: colours4
-    lang: en
-    de: "streifig"
-    en: "striped"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_020_en
-    topic: colours4
-    lang: en
-    de: "gepunktet"
-    en: "spotted"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_021_en
-    topic: colours4
-    lang: en
-    de: "sauber"
-    en: "clean"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_022_en
-    topic: colours4
-    lang: en
-    de: "schmutzig"
-    en: "dirty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_023_en
-    topic: colours4
-    lang: en
-    de: "neu"
-    en: "new"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: colours4_024_en
-    topic: colours4
-    lang: en
-    de: "alt"
-    en: "old"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_001_en
-    topic: time4
-    lang: en
-    de: "null"
-    en: "zero"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_002_en
-    topic: time4
-    lang: en
-    de: "eins"
-    en: "one"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_003_en
-    topic: time4
-    lang: en
-    de: "zwei"
-    en: "two"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_004_en
-    topic: time4
-    lang: en
-    de: "drei"
-    en: "three"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_005_en
-    topic: time4
-    lang: en
-    de: "vier"
-    en: "four"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_006_en
-    topic: time4
-    lang: en
-    de: "fünf"
-    en: "five"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_007_en
-    topic: time4
-    lang: en
-    de: "sechs"
-    en: "six"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_008_en
-    topic: time4
-    lang: en
-    de: "sieben"
-    en: "seven"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_009_en
-    topic: time4
-    lang: en
-    de: "acht"
-    en: "eight"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_010_en
-    topic: time4
-    lang: en
-    de: "neun"
-    en: "nine"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_011_en
-    topic: time4
-    lang: en
-    de: "zehn"
-    en: "ten"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_012_en
-    topic: time4
-    lang: en
-    de: "elf"
-    en: "eleven"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_013_en
-    topic: time4
-    lang: en
-    de: "zwölf"
-    en: "twelve"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_014_en
-    topic: time4
-    lang: en
-    de: "zwanzig"
-    en: "twenty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_015_en
-    topic: time4
-    lang: en
-    de: "dreißig"
-    en: "thirty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_016_en
-    topic: time4
-    lang: en
-    de: "vierzig"
-    en: "forty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_017_en
-    topic: time4
-    lang: en
-    de: "fünfzig"
-    en: "fifty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_018_en
-    topic: time4
-    lang: en
-    de: "sechzig"
-    en: "sixty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_019_en
-    topic: time4
-    lang: en
-    de: "siebzig"
-    en: "seventy"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_020_en
-    topic: time4
-    lang: en
-    de: "achtzig"
-    en: "eighty"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_021_en
-    topic: time4
-    lang: en
-    de: "neunzig"
-    en: "ninety"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_022_en
-    topic: time4
-    lang: en
-    de: "hundert"
-    en: "one hundred"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_023_en
-    topic: time4
-    lang: en
-    de: "die Uhr"
-    en: "the clock"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_024_en
-    topic: time4
-    lang: en
-    de: "die Uhrzeit"
-    en: "the time"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_025_en
-    topic: time4
-    lang: en
-    de: "die Minute"
-    en: "the minute"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_026_en
-    topic: time4
-    lang: en
-    de: "die Stunde"
-    en: "the hour"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_027_en
-    topic: time4
-    lang: en
-    de: "Uhr"
-    en: "o'clock"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_028_en
-    topic: time4
-    lang: en
-    de: "morgens"
-    en: "in the morning"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_029_en
-    topic: time4
-    lang: en
-    de: "nachmittags"
-    en: "in the afternoon"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_030_en
-    topic: time4
-    lang: en
-    de: "abends"
-    en: "in the evening"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_031_en
-    topic: time4
-    lang: en
-    de: "nachts"
-    en: "at night"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_032_en
-    topic: time4
-    lang: en
-    de: "Montag"
-    en: "Monday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_033_en
-    topic: time4
-    lang: en
-    de: "Dienstag"
-    en: "Tuesday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_034_en
-    topic: time4
-    lang: en
-    de: "Mittwoch"
-    en: "Wednesday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_035_en
-    topic: time4
-    lang: en
-    de: "Donnerstag"
-    en: "Thursday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_036_en
-    topic: time4
-    lang: en
-    de: "Freitag"
-    en: "Friday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_037_en
-    topic: time4
-    lang: en
-    de: "Samstag"
-    en: "Saturday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_038_en
-    topic: time4
-    lang: en
-    de: "Sonntag"
-    en: "Sunday"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_039_en
-    topic: time4
-    lang: en
-    de: "Januar"
-    en: "January"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_040_en
-    topic: time4
-    lang: en
-    de: "Februar"
-    en: "February"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_041_en
-    topic: time4
-    lang: en
-    de: "März"
-    en: "March"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_042_en
-    topic: time4
-    lang: en
-    de: "April"
-    en: "April"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_043_en
-    topic: time4
-    lang: en
-    de: "Mai"
-    en: "May"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_044_en
-    topic: time4
-    lang: en
-    de: "Juni"
-    en: "June"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_045_en
-    topic: time4
-    lang: en
-    de: "Juli"
-    en: "July"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_046_en
-    topic: time4
-    lang: en
-    de: "August"
-    en: "August"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_047_en
-    topic: time4
-    lang: en
-    de: "September"
-    en: "September"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_048_en
-    topic: time4
-    lang: en
-    de: "Oktober"
-    en: "October"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_049_en
-    topic: time4
-    lang: en
-    de: "November"
-    en: "November"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
-  - id: time4_050_en
-    topic: time4
-    lang: en
-    de: "Dezember"
-    en: "December"
-    hint_de_to_en: ""
-    hint_en_to_de: ""
+- id: family4_001_en
+  topic: family4
+  lang: en
+  de: Familie
+  en: family
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_002_en
+  topic: family4
+  lang: en
+  de: Mutter
+  en: mother
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_003_en
+  topic: family4
+  lang: en
+  de: Vater
+  en: father
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_004_en
+  topic: family4
+  lang: en
+  de: Eltern
+  en: parents
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_005_en
+  topic: family4
+  lang: en
+  de: Bruder
+  en: brother
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_006_en
+  topic: family4
+  lang: en
+  de: Schwester
+  en: sister
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_007_en
+  topic: family4
+  lang: en
+  de: Oma
+  en: grandma
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_008_en
+  topic: family4
+  lang: en
+  de: Opa
+  en: grandpa
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_009_en
+  topic: family4
+  lang: en
+  de: Cousin
+  en: cousin
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_010_en
+  topic: family4
+  lang: en
+  de: Cousine
+  en: cousin
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_011_en
+  topic: family4
+  lang: en
+  de: Freund
+  en: friend
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_012_en
+  topic: family4
+  lang: en
+  de: Freundin
+  en: friend
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_013_en
+  topic: family4
+  lang: en
+  de: beste Freundin
+  en: best friend
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_014_en
+  topic: family4
+  lang: en
+  de: Haustier
+  en: pet
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_015_en
+  topic: family4
+  lang: en
+  de: Name
+  en: name
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_016_en
+  topic: family4
+  lang: en
+  de: Alter
+  en: age
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_017_en
+  topic: family4
+  lang: en
+  de: Geburtstag
+  en: birthday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_018_en
+  topic: family4
+  lang: en
+  de: Party
+  en: party
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_019_en
+  topic: family4
+  lang: en
+  de: Hobby
+  en: hobby
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_020_en
+  topic: family4
+  lang: en
+  de: Wochenende
+  en: weekend
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_021_en
+  topic: family4
+  lang: en
+  de: bitte
+  en: please
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_022_en
+  topic: family4
+  lang: en
+  de: danke
+  en: thanks
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_023_en
+  topic: family4
+  lang: en
+  de: entschuldige
+  en: sorry
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_024_en
+  topic: family4
+  lang: en
+  de: hallo
+  en: hello
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: family4_025_en
+  topic: family4
+  lang: en
+  de: tschüss
+  en: bye
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_001_en
+  topic: body4
+  lang: en
+  de: Kopf
+  en: head
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_002_en
+  topic: body4
+  lang: en
+  de: Haare
+  en: hair
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_003_en
+  topic: body4
+  lang: en
+  de: Auge
+  en: eye
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_004_en
+  topic: body4
+  lang: en
+  de: Ohr
+  en: ear
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_005_en
+  topic: body4
+  lang: en
+  de: Nase
+  en: nose
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_006_en
+  topic: body4
+  lang: en
+  de: Mund
+  en: mouth
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_007_en
+  topic: body4
+  lang: en
+  de: Zahn
+  en: tooth
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_008_en
+  topic: body4
+  lang: en
+  de: Arm
+  en: arm
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_009_en
+  topic: body4
+  lang: en
+  de: Hand
+  en: hand
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_010_en
+  topic: body4
+  lang: en
+  de: Bein
+  en: leg
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_011_en
+  topic: body4
+  lang: en
+  de: Fuß
+  en: foot
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_012_en
+  topic: body4
+  lang: en
+  de: Rücken
+  en: back
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_013_en
+  topic: body4
+  lang: en
+  de: Bauch
+  en: stomach
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_014_en
+  topic: body4
+  lang: en
+  de: krank
+  en: ill
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_015_en
+  topic: body4
+  lang: en
+  de: gesund
+  en: healthy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_016_en
+  topic: body4
+  lang: en
+  de: hungrig
+  en: hungry
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_017_en
+  topic: body4
+  lang: en
+  de: durstig
+  en: thirsty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_018_en
+  topic: body4
+  lang: en
+  de: müde
+  en: tired
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_019_en
+  topic: body4
+  lang: en
+  de: glücklich
+  en: happy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_020_en
+  topic: body4
+  lang: en
+  de: traurig
+  en: sad
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_021_en
+  topic: body4
+  lang: en
+  de: wütend
+  en: angry
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_022_en
+  topic: body4
+  lang: en
+  de: ängstlich
+  en: scared
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_023_en
+  topic: body4
+  lang: en
+  de: kalt
+  en: cold
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_024_en
+  topic: body4
+  lang: en
+  de: heiß
+  en: hot
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: body4_025_en
+  topic: body4
+  lang: en
+  de: gut
+  en: fine
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_001_en
+  topic: clothes4
+  lang: en
+  de: Kleid
+  en: dress
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_002_en
+  topic: clothes4
+  lang: en
+  de: T-Shirt
+  en: T-shirt
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_003_en
+  topic: clothes4
+  lang: en
+  de: Hemd
+  en: shirt
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_004_en
+  topic: clothes4
+  lang: en
+  de: Hose
+  en: trousers
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_005_en
+  topic: clothes4
+  lang: en
+  de: Jeans
+  en: jeans
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_006_en
+  topic: clothes4
+  lang: en
+  de: Pullover
+  en: pullover
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_007_en
+  topic: clothes4
+  lang: en
+  de: Jacke
+  en: jacket
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_008_en
+  topic: clothes4
+  lang: en
+  de: Mantel
+  en: coat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_009_en
+  topic: clothes4
+  lang: en
+  de: Schuhe
+  en: shoes
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_010_en
+  topic: clothes4
+  lang: en
+  de: Socken
+  en: socks
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_011_en
+  topic: clothes4
+  lang: en
+  de: Hut
+  en: hat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_012_en
+  topic: clothes4
+  lang: en
+  de: Mütze
+  en: cap
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_013_en
+  topic: clothes4
+  lang: en
+  de: Schal
+  en: scarf
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_014_en
+  topic: clothes4
+  lang: en
+  de: Handschuhe
+  en: gloves
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_015_en
+  topic: clothes4
+  lang: en
+  de: Rock
+  en: skirt
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_016_en
+  topic: clothes4
+  lang: en
+  de: Shorts
+  en: shorts
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_017_en
+  topic: clothes4
+  lang: en
+  de: Turnschuhe
+  en: trainers
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_018_en
+  topic: clothes4
+  lang: en
+  de: Stiefel
+  en: boots
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_019_en
+  topic: clothes4
+  lang: en
+  de: Regenmantel
+  en: raincoat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_020_en
+  topic: clothes4
+  lang: en
+  de: Badeanzug
+  en: swimsuit
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_021_en
+  topic: clothes4
+  lang: en
+  de: Brille
+  en: glasses
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_022_en
+  topic: clothes4
+  lang: en
+  de: anziehen
+  en: to put on
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_023_en
+  topic: clothes4
+  lang: en
+  de: ausziehen
+  en: to take off
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: clothes4_024_en
+  topic: clothes4
+  lang: en
+  de: tragen
+  en: to wear
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_001_en
+  topic: school4
+  lang: en
+  de: Schule
+  en: school
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_002_en
+  topic: school4
+  lang: en
+  de: Klassenzimmer
+  en: classroom
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_003_en
+  topic: school4
+  lang: en
+  de: Klasse
+  en: class
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_004_en
+  topic: school4
+  lang: en
+  de: Lehrer
+  en: teacher
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_005_en
+  topic: school4
+  lang: en
+  de: Lehrerin
+  en: teacher
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_006_en
+  topic: school4
+  lang: en
+  de: Tafel
+  en: board
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_007_en
+  topic: school4
+  lang: en
+  de: Stuhl
+  en: chair
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_008_en
+  topic: school4
+  lang: en
+  de: Tisch
+  en: desk
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_009_en
+  topic: school4
+  lang: en
+  de: Buch
+  en: book
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_010_en
+  topic: school4
+  lang: en
+  de: Heft
+  en: exercise book
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_011_en
+  topic: school4
+  lang: en
+  de: Bleistift
+  en: pencil
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_012_en
+  topic: school4
+  lang: en
+  de: Kugelschreiber
+  en: pen
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_013_en
+  topic: school4
+  lang: en
+  de: Radiergummi
+  en: rubber
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_014_en
+  topic: school4
+  lang: en
+  de: Lineal
+  en: ruler
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_015_en
+  topic: school4
+  lang: en
+  de: Schultasche
+  en: schoolbag
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_016_en
+  topic: school4
+  lang: en
+  de: Hausaufgaben
+  en: homework
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_017_en
+  topic: school4
+  lang: en
+  de: Pause
+  en: break
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_018_en
+  topic: school4
+  lang: en
+  de: Schulhof
+  en: playground
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_019_en
+  topic: school4
+  lang: en
+  de: Bibliothek
+  en: library
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_020_en
+  topic: school4
+  lang: en
+  de: Stundenplan
+  en: timetable
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_021_en
+  topic: school4
+  lang: en
+  de: Stunde
+  en: lesson
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_022_en
+  topic: school4
+  lang: en
+  de: Computer
+  en: computer
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_023_en
+  topic: school4
+  lang: en
+  de: Karte
+  en: map
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_024_en
+  topic: school4
+  lang: en
+  de: Bild
+  en: picture
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: school4_025_en
+  topic: school4
+  lang: en
+  de: lesen
+  en: to read
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_001_en
+  topic: home4
+  lang: en
+  de: Haus
+  en: house
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_002_en
+  topic: home4
+  lang: en
+  de: Wohnung
+  en: flat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_003_en
+  topic: home4
+  lang: en
+  de: Zimmer
+  en: room
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_004_en
+  topic: home4
+  lang: en
+  de: Küche
+  en: kitchen
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_005_en
+  topic: home4
+  lang: en
+  de: Badezimmer
+  en: bathroom
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_006_en
+  topic: home4
+  lang: en
+  de: Schlafzimmer
+  en: bedroom
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_007_en
+  topic: home4
+  lang: en
+  de: Wohnzimmer
+  en: living room
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_008_en
+  topic: home4
+  lang: en
+  de: Garten
+  en: garden
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_009_en
+  topic: home4
+  lang: en
+  de: Tür
+  en: door
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_010_en
+  topic: home4
+  lang: en
+  de: Fenster
+  en: window
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_011_en
+  topic: home4
+  lang: en
+  de: Bett
+  en: bed
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_012_en
+  topic: home4
+  lang: en
+  de: Tisch
+  en: table
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_013_en
+  topic: home4
+  lang: en
+  de: Lampe
+  en: lamp
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_014_en
+  topic: home4
+  lang: en
+  de: Fernseher
+  en: TV
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_015_en
+  topic: home4
+  lang: en
+  de: frühstücken
+  en: to have breakfast
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_016_en
+  topic: home4
+  lang: en
+  de: zu Mittag essen
+  en: to have lunch
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_017_en
+  topic: home4
+  lang: en
+  de: zu Abend essen
+  en: to have dinner
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_018_en
+  topic: home4
+  lang: en
+  de: aufstehen
+  en: to get up
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_019_en
+  topic: home4
+  lang: en
+  de: ins Bett gehen
+  en: to go to bed
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_020_en
+  topic: home4
+  lang: en
+  de: waschen
+  en: to wash
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_021_en
+  topic: home4
+  lang: en
+  de: Zähne putzen
+  en: to brush teeth
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_022_en
+  topic: home4
+  lang: en
+  de: aufgeräumt
+  en: tidy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_023_en
+  topic: home4
+  lang: en
+  de: unordentlich
+  en: messy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: home4_024_en
+  topic: home4
+  lang: en
+  de: helfen
+  en: to help
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_001_en
+  topic: food4
+  lang: en
+  de: Brot
+  en: bread
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_002_en
+  topic: food4
+  lang: en
+  de: Butter
+  en: butter
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_003_en
+  topic: food4
+  lang: en
+  de: Käse
+  en: cheese
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_004_en
+  topic: food4
+  lang: en
+  de: Ei
+  en: egg
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_005_en
+  topic: food4
+  lang: en
+  de: Hähnchen
+  en: chicken
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_006_en
+  topic: food4
+  lang: en
+  de: Pommes
+  en: chips
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_007_en
+  topic: food4
+  lang: en
+  de: Schokolade
+  en: chocolate
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_008_en
+  topic: food4
+  lang: en
+  de: Süßigkeiten
+  en: sweets
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_009_en
+  topic: food4
+  lang: en
+  de: Obst
+  en: fruit
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_010_en
+  topic: food4
+  lang: en
+  de: Apfel
+  en: apple
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_011_en
+  topic: food4
+  lang: en
+  de: Erdbeere
+  en: strawberry
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_012_en
+  topic: food4
+  lang: en
+  de: Pflaume
+  en: plum
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_013_en
+  topic: food4
+  lang: en
+  de: Tomate
+  en: tomato
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_014_en
+  topic: food4
+  lang: en
+  de: Salat
+  en: salad
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_015_en
+  topic: food4
+  lang: en
+  de: Wasser
+  en: water
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_016_en
+  topic: food4
+  lang: en
+  de: Tee
+  en: tea
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_017_en
+  topic: food4
+  lang: en
+  de: Saft
+  en: juice
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_018_en
+  topic: food4
+  lang: en
+  de: Milch
+  en: milk
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_019_en
+  topic: food4
+  lang: en
+  de: Limonade
+  en: lemonade
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_020_en
+  topic: food4
+  lang: en
+  de: Getränk
+  en: drink
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_021_en
+  topic: food4
+  lang: en
+  de: essen
+  en: to eat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_022_en
+  topic: food4
+  lang: en
+  de: trinken
+  en: to drink
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_023_en
+  topic: food4
+  lang: en
+  de: Laden
+  en: shop
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_024_en
+  topic: food4
+  lang: en
+  de: einkaufen
+  en: to shop
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: food4_025_en
+  topic: food4
+  lang: en
+  de: Geld
+  en: money
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_001_en
+  topic: animals4
+  lang: en
+  de: Hund
+  en: dog
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_002_en
+  topic: animals4
+  lang: en
+  de: Katze
+  en: cat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_003_en
+  topic: animals4
+  lang: en
+  de: Maus
+  en: mouse
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_004_en
+  topic: animals4
+  lang: en
+  de: Kaninchen
+  en: rabbit
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_005_en
+  topic: animals4
+  lang: en
+  de: Fisch
+  en: fish
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_006_en
+  topic: animals4
+  lang: en
+  de: Hamster
+  en: hamster
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_007_en
+  topic: animals4
+  lang: en
+  de: Pferd
+  en: horse
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_008_en
+  topic: animals4
+  lang: en
+  de: Vogel
+  en: bird
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_009_en
+  topic: animals4
+  lang: en
+  de: Kuh
+  en: cow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_010_en
+  topic: animals4
+  lang: en
+  de: Schwein
+  en: pig
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_011_en
+  topic: animals4
+  lang: en
+  de: Schaf
+  en: sheep
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_012_en
+  topic: animals4
+  lang: en
+  de: Ziege
+  en: goat
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_013_en
+  topic: animals4
+  lang: en
+  de: Ente
+  en: duck
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_014_en
+  topic: animals4
+  lang: en
+  de: Frosch
+  en: frog
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_015_en
+  topic: animals4
+  lang: en
+  de: Bär
+  en: bear
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_016_en
+  topic: animals4
+  lang: en
+  de: Fuchs
+  en: fox
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_017_en
+  topic: animals4
+  lang: en
+  de: Hirsch
+  en: deer
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_018_en
+  topic: animals4
+  lang: en
+  de: Löwe
+  en: lion
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_019_en
+  topic: animals4
+  lang: en
+  de: Elefant
+  en: elephant
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_020_en
+  topic: animals4
+  lang: en
+  de: Schlange
+  en: snake
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_021_en
+  topic: animals4
+  lang: en
+  de: wild
+  en: wild
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_022_en
+  topic: animals4
+  lang: en
+  de: zahm
+  en: tame
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_023_en
+  topic: animals4
+  lang: en
+  de: groß
+  en: big
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: animals4_024_en
+  topic: animals4
+  lang: en
+  de: klein
+  en: small
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_001_en
+  topic: leisure4
+  lang: en
+  de: Hobby
+  en: hobby
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_002_en
+  topic: leisure4
+  lang: en
+  de: Sport
+  en: sport
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_003_en
+  topic: leisure4
+  lang: en
+  de: Fußball spielen
+  en: to play football
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_004_en
+  topic: leisure4
+  lang: en
+  de: Tennis spielen
+  en: to play tennis
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_005_en
+  topic: leisure4
+  lang: en
+  de: schwimmen
+  en: to swim
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_006_en
+  topic: leisure4
+  lang: en
+  de: reiten
+  en: to ride
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_007_en
+  topic: leisure4
+  lang: en
+  de: laufen
+  en: to run
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_008_en
+  topic: leisure4
+  lang: en
+  de: springen
+  en: to jump
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_009_en
+  topic: leisure4
+  lang: en
+  de: tanzen
+  en: to dance
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_010_en
+  topic: leisure4
+  lang: en
+  de: singen
+  en: to sing
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_011_en
+  topic: leisure4
+  lang: en
+  de: malen
+  en: to paint
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_012_en
+  topic: leisure4
+  lang: en
+  de: zeichnen
+  en: to draw
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_013_en
+  topic: leisure4
+  lang: en
+  de: lesen
+  en: to read
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_014_en
+  topic: leisure4
+  lang: en
+  de: Musik hören
+  en: to listen to music
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_015_en
+  topic: leisure4
+  lang: en
+  de: fernsehen
+  en: to watch TV
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_016_en
+  topic: leisure4
+  lang: en
+  de: Computer spielen
+  en: to play computer games
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_017_en
+  topic: leisure4
+  lang: en
+  de: Fahrrad fahren
+  en: to go cycling
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_018_en
+  topic: leisure4
+  lang: en
+  de: skaten
+  en: to skate
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_019_en
+  topic: leisure4
+  lang: en
+  de: sich treffen
+  en: to meet
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_020_en
+  topic: leisure4
+  lang: en
+  de: Park
+  en: park
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_021_en
+  topic: leisure4
+  lang: en
+  de: Spielplatz
+  en: playground
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_022_en
+  topic: leisure4
+  lang: en
+  de: Wochenende
+  en: weekend
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_023_en
+  topic: leisure4
+  lang: en
+  de: Spaß haben
+  en: to have fun
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: leisure4_024_en
+  topic: leisure4
+  lang: en
+  de: spielen
+  en: to play
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_001_en
+  topic: weather4
+  lang: en
+  de: Sonne
+  en: sun
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_002_en
+  topic: weather4
+  lang: en
+  de: sonnig
+  en: sunny
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_003_en
+  topic: weather4
+  lang: en
+  de: Regen
+  en: rain
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_004_en
+  topic: weather4
+  lang: en
+  de: regnerisch
+  en: rainy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_005_en
+  topic: weather4
+  lang: en
+  de: Wolke
+  en: cloud
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_006_en
+  topic: weather4
+  lang: en
+  de: bewölkt
+  en: cloudy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_007_en
+  topic: weather4
+  lang: en
+  de: Wind
+  en: wind
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_008_en
+  topic: weather4
+  lang: en
+  de: windig
+  en: windy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_009_en
+  topic: weather4
+  lang: en
+  de: Schnee
+  en: snow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_010_en
+  topic: weather4
+  lang: en
+  de: schneit
+  en: it is snowing
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_011_en
+  topic: weather4
+  lang: en
+  de: Sturm
+  en: storm
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_012_en
+  topic: weather4
+  lang: en
+  de: neblig
+  en: foggy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_013_en
+  topic: weather4
+  lang: en
+  de: warm
+  en: warm
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_014_en
+  topic: weather4
+  lang: en
+  de: kühl
+  en: cool
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_015_en
+  topic: weather4
+  lang: en
+  de: kalt
+  en: cold
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_016_en
+  topic: weather4
+  lang: en
+  de: heiß
+  en: hot
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_017_en
+  topic: weather4
+  lang: en
+  de: Regenbogen
+  en: rainbow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_018_en
+  topic: weather4
+  lang: en
+  de: Regenschirm
+  en: umbrella
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_019_en
+  topic: weather4
+  lang: en
+  de: Jahreszeit
+  en: season
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_020_en
+  topic: weather4
+  lang: en
+  de: Frühling
+  en: spring
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_021_en
+  topic: weather4
+  lang: en
+  de: Sommer
+  en: summer
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_022_en
+  topic: weather4
+  lang: en
+  de: Herbst
+  en: autumn
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_023_en
+  topic: weather4
+  lang: en
+  de: Winter
+  en: winter
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: weather4_024_en
+  topic: weather4
+  lang: en
+  de: Wetter
+  en: weather
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_001_en
+  topic: yearfest4
+  lang: en
+  de: Jahr
+  en: year
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_002_en
+  topic: yearfest4
+  lang: en
+  de: Monat
+  en: month
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_003_en
+  topic: yearfest4
+  lang: en
+  de: Woche
+  en: week
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_004_en
+  topic: yearfest4
+  lang: en
+  de: Tag
+  en: day
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_005_en
+  topic: yearfest4
+  lang: en
+  de: heute
+  en: today
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_006_en
+  topic: yearfest4
+  lang: en
+  de: morgen
+  en: tomorrow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_007_en
+  topic: yearfest4
+  lang: en
+  de: gestern
+  en: yesterday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_008_en
+  topic: yearfest4
+  lang: en
+  de: Geburtstag
+  en: birthday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_009_en
+  topic: yearfest4
+  lang: en
+  de: Geschenk
+  en: present
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_010_en
+  topic: yearfest4
+  lang: en
+  de: Karte
+  en: card
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_011_en
+  topic: yearfest4
+  lang: en
+  de: Kerze
+  en: candle
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_012_en
+  topic: yearfest4
+  lang: en
+  de: Weihnachten
+  en: Christmas
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_013_en
+  topic: yearfest4
+  lang: en
+  de: Ostern
+  en: Easter
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_014_en
+  topic: yearfest4
+  lang: en
+  de: Halloween
+  en: Halloween
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_015_en
+  topic: yearfest4
+  lang: en
+  de: Neujahr
+  en: New Year
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_016_en
+  topic: yearfest4
+  lang: en
+  de: Advent
+  en: Advent
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_017_en
+  topic: yearfest4
+  lang: en
+  de: Ferien
+  en: holidays
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_018_en
+  topic: yearfest4
+  lang: en
+  de: Sommerferien
+  en: summer holidays
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_019_en
+  topic: yearfest4
+  lang: en
+  de: Schulfrei
+  en: day off
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_020_en
+  topic: yearfest4
+  lang: en
+  de: Feiertag
+  en: holiday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_021_en
+  topic: yearfest4
+  lang: en
+  de: feiern
+  en: to celebrate
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_022_en
+  topic: yearfest4
+  lang: en
+  de: einladen
+  en: to invite
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_023_en
+  topic: yearfest4
+  lang: en
+  de: kommen
+  en: to come
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: yearfest4_024_en
+  topic: yearfest4
+  lang: en
+  de: gehen
+  en: to go
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_001_en
+  topic: colours4
+  lang: en
+  de: schwarz
+  en: black
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_002_en
+  topic: colours4
+  lang: en
+  de: weiß
+  en: white
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_003_en
+  topic: colours4
+  lang: en
+  de: rot
+  en: red
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_004_en
+  topic: colours4
+  lang: en
+  de: blau
+  en: blue
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_005_en
+  topic: colours4
+  lang: en
+  de: grün
+  en: green
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_006_en
+  topic: colours4
+  lang: en
+  de: gelb
+  en: yellow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_007_en
+  topic: colours4
+  lang: en
+  de: braun
+  en: brown
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_008_en
+  topic: colours4
+  lang: en
+  de: orange
+  en: orange
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_009_en
+  topic: colours4
+  lang: en
+  de: rosa
+  en: pink
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_010_en
+  topic: colours4
+  lang: en
+  de: grau
+  en: grey
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_011_en
+  topic: colours4
+  lang: en
+  de: lila
+  en: purple
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_012_en
+  topic: colours4
+  lang: en
+  de: hell
+  en: light
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_013_en
+  topic: colours4
+  lang: en
+  de: dunkel
+  en: dark
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_014_en
+  topic: colours4
+  lang: en
+  de: bunt
+  en: colourful
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_015_en
+  topic: colours4
+  lang: en
+  de: Farbe
+  en: colour
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_016_en
+  topic: colours4
+  lang: en
+  de: Lieblingsfarbe
+  en: favourite colour
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_017_en
+  topic: colours4
+  lang: en
+  de: Regenbogen
+  en: rainbow
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_018_en
+  topic: colours4
+  lang: en
+  de: Muster
+  en: pattern
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_019_en
+  topic: colours4
+  lang: en
+  de: streifig
+  en: striped
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_020_en
+  topic: colours4
+  lang: en
+  de: gepunktet
+  en: spotted
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_021_en
+  topic: colours4
+  lang: en
+  de: sauber
+  en: clean
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_022_en
+  topic: colours4
+  lang: en
+  de: schmutzig
+  en: dirty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_023_en
+  topic: colours4
+  lang: en
+  de: neu
+  en: new
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: colours4_024_en
+  topic: colours4
+  lang: en
+  de: alt
+  en: old
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_001_en
+  topic: time4
+  lang: en
+  de: 'null'
+  en: zero
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_002_en
+  topic: time4
+  lang: en
+  de: eins
+  en: one
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_003_en
+  topic: time4
+  lang: en
+  de: zwei
+  en: two
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_004_en
+  topic: time4
+  lang: en
+  de: drei
+  en: three
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_005_en
+  topic: time4
+  lang: en
+  de: vier
+  en: four
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_006_en
+  topic: time4
+  lang: en
+  de: fünf
+  en: five
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_007_en
+  topic: time4
+  lang: en
+  de: sechs
+  en: six
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_008_en
+  topic: time4
+  lang: en
+  de: sieben
+  en: seven
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_009_en
+  topic: time4
+  lang: en
+  de: acht
+  en: eight
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_010_en
+  topic: time4
+  lang: en
+  de: neun
+  en: nine
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_011_en
+  topic: time4
+  lang: en
+  de: zehn
+  en: ten
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_012_en
+  topic: time4
+  lang: en
+  de: elf
+  en: eleven
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_013_en
+  topic: time4
+  lang: en
+  de: zwölf
+  en: twelve
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_014_en
+  topic: time4
+  lang: en
+  de: zwanzig
+  en: twenty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_015_en
+  topic: time4
+  lang: en
+  de: dreißig
+  en: thirty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_016_en
+  topic: time4
+  lang: en
+  de: vierzig
+  en: forty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_017_en
+  topic: time4
+  lang: en
+  de: fünfzig
+  en: fifty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_018_en
+  topic: time4
+  lang: en
+  de: sechzig
+  en: sixty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_019_en
+  topic: time4
+  lang: en
+  de: siebzig
+  en: seventy
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_020_en
+  topic: time4
+  lang: en
+  de: achtzig
+  en: eighty
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_021_en
+  topic: time4
+  lang: en
+  de: neunzig
+  en: ninety
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_022_en
+  topic: time4
+  lang: en
+  de: hundert
+  en: one hundred
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_023_en
+  topic: time4
+  lang: en
+  de: Uhr
+  en: clock
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_024_en
+  topic: time4
+  lang: en
+  de: Uhrzeit
+  en: time
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_025_en
+  topic: time4
+  lang: en
+  de: Minute
+  en: minute
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_026_en
+  topic: time4
+  lang: en
+  de: Stunde
+  en: hour
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_027_en
+  topic: time4
+  lang: en
+  de: Uhr
+  en: o'clock
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_028_en
+  topic: time4
+  lang: en
+  de: morgens
+  en: in the morning
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_029_en
+  topic: time4
+  lang: en
+  de: nachmittags
+  en: in the afternoon
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_030_en
+  topic: time4
+  lang: en
+  de: abends
+  en: in the evening
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_031_en
+  topic: time4
+  lang: en
+  de: nachts
+  en: at night
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_032_en
+  topic: time4
+  lang: en
+  de: Montag
+  en: Monday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_033_en
+  topic: time4
+  lang: en
+  de: Dienstag
+  en: Tuesday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_034_en
+  topic: time4
+  lang: en
+  de: Mittwoch
+  en: Wednesday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_035_en
+  topic: time4
+  lang: en
+  de: Donnerstag
+  en: Thursday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_036_en
+  topic: time4
+  lang: en
+  de: Freitag
+  en: Friday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_037_en
+  topic: time4
+  lang: en
+  de: Samstag
+  en: Saturday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_038_en
+  topic: time4
+  lang: en
+  de: Sonntag
+  en: Sunday
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_039_en
+  topic: time4
+  lang: en
+  de: Januar
+  en: January
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_040_en
+  topic: time4
+  lang: en
+  de: Februar
+  en: February
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_041_en
+  topic: time4
+  lang: en
+  de: März
+  en: March
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_042_en
+  topic: time4
+  lang: en
+  de: April
+  en: April
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_043_en
+  topic: time4
+  lang: en
+  de: Mai
+  en: May
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_044_en
+  topic: time4
+  lang: en
+  de: Juni
+  en: June
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_045_en
+  topic: time4
+  lang: en
+  de: Juli
+  en: July
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_046_en
+  topic: time4
+  lang: en
+  de: August
+  en: August
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_047_en
+  topic: time4
+  lang: en
+  de: September
+  en: September
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_048_en
+  topic: time4
+  lang: en
+  de: Oktober
+  en: October
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_049_en
+  topic: time4
+  lang: en
+  de: November
+  en: November
+  hint_de_to_en: ''
+  hint_en_to_de: ''
+- id: time4_050_en
+  topic: time4
+  lang: en
+  de: Dezember
+  en: December
+  hint_de_to_en: ''
+  hint_en_to_de: ''
