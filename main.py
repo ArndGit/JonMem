@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
+from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -24,11 +25,12 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.spinner import Spinner
+from kivy.uix.spinner import Spinner, SpinnerOption
 from kivy.uix.textinput import TextInput
 from kivy.uix.togglebutton import ToggleButton
 from kivy.graphics import Color, RoundedRectangle, Line
-from kivy.utils import platform as kivy_platform
+from kivy.utils import platform as kivy_platform, escape_markup
+import training
 
 try:
     import yaml  # type: ignore
@@ -57,6 +59,11 @@ PYRAMID_STAGE_WEIGHTS = {
     4: 1,
 }
 
+MENU_ICON = "\u2261"
+STAR_ICON = "\u2605"
+FONT_PATH = os.path.join(os.path.dirname(__file__), "data", "fonts", "DejaVuSans.ttf")
+APP_FONT_NAME = None
+
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
 BASE_INPUT_HEIGHT = 72
@@ -69,6 +76,9 @@ TEXT_COLOR = (0.12, 0.1, 0.08, 1)
 SURFACE_BG = (0.98, 0.96, 0.93, 1)
 CARD_BG = (0.94, 0.92, 0.88, 1)
 CARD_BORDER = (0.72, 0.68, 0.63, 1)
+LEVEL_BG_2 = (0.88, 0.96, 0.9, 1)
+LEVEL_BG_3 = (0.88, 0.93, 0.99, 1)
+LEVEL_BG_4 = (0.96, 0.88, 0.95, 1)
 INPUT_BG = (1, 1, 1, 1)
 BUTTON_BG = (0.86, 0.83, 0.78, 1)
 BASE_CARD_HEIGHT = 68
@@ -101,16 +111,52 @@ def _scroll_to_widget(widget) -> None:
         parent = parent.parent
 
 
+class SmartTextInput(TextInput):
+    def insert_text(self, substring, from_undo=False):
+        if substring in ("\b", "\x08", "\x7f"):
+            self.do_backspace(from_undo=from_undo)
+            return
+        return super().insert_text(substring, from_undo=from_undo)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if hasattr(self, "halign"):
+            self.halign = "center"
+
+
+class ReadableSpinnerOption(SpinnerOption):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.background_normal = ""
+        self.background_color = CARD_BG
+        self.color = TEXT_COLOR
+        self.font_size = _ui(BASE_SPINNER_FONT_SIZE)
+        self.height = _ui(BASE_INPUT_HEIGHT)
+        if APP_FONT_NAME:
+            self.font_name = APP_FONT_NAME
+
+
 def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
-    return TextInput(**kwargs)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
+    return SmartTextInput(**kwargs)
 
 
-    def _styled_label(text: str, **kwargs) -> Label:
+def _styled_spinner(**kwargs) -> Spinner:
+    kwargs.setdefault("font_size", _ui(BASE_SPINNER_FONT_SIZE))
+    kwargs.setdefault("option_cls", ReadableSpinnerOption)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
+    return Spinner(**kwargs)
+
+def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
     kwargs.setdefault("color", TEXT_COLOR)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
     label = Label(text=text, **kwargs)
     label.size_hint_y = None
     label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", (lbl.width, None)))
@@ -131,6 +177,15 @@ def _styled_popup(**kwargs) -> Popup:
     kwargs.setdefault("background_color", SURFACE_BG)
     kwargs.setdefault("separator_color", CARD_BORDER)
     return Popup(**kwargs)
+
+def _level_bg_color(level: int) -> tuple[float, float, float, float]:
+    if level == 2:
+        return LEVEL_BG_2
+    if level == 3:
+        return LEVEL_BG_3
+    if level >= 4:
+        return LEVEL_BG_4
+    return CARD_BG
 
 
 def _read_text(path: str) -> str:
@@ -177,10 +232,9 @@ def _load_json(path: str, default):
     with open(path, "r", encoding="utf-8", errors="replace") as handle:
         return json.load(handle)
 
-
-    def _save_json(path: str, data) -> None:
-        with open(path, "w", encoding="utf-8") as handle:
-            json.dump(data, handle, ensure_ascii=False, indent=2)
+def _save_json(path: str, data) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
 
 
 def _slugify(text: str) -> str:
@@ -192,39 +246,6 @@ def _slugify(text: str) -> str:
             out.append("_")
     slug = "".join(out).strip("_")
     return slug or "topic"
-
-
-def _normalize(text: str) -> str:
-    return " ".join("".join(ch for ch in text.lower().strip() if ch.isalnum() or ch.isspace()).split())
-
-
-def _levenshtein(a: str, b: str) -> int:
-    if a == b:
-        return 0
-    if not a:
-        return len(b)
-    if not b:
-        return len(a)
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, 1):
-        cur = [i]
-        for j, cb in enumerate(b, 1):
-            ins = cur[j - 1] + 1
-            delete = prev[j] + 1
-            sub = prev[j - 1] + (0 if ca == cb else 1)
-            cur.append(min(ins, delete, sub))
-        prev = cur
-    return prev[-1]
-
-
-def _shuffle_avoid_adjacent(items: list[dict], key: str, attempts: int = 200) -> list[dict]:
-    if len(items) < 3:
-        return items
-    for _ in range(attempts):
-        random.shuffle(items)
-        if all(items[i].get(key) != items[i - 1].get(key) for i in range(1, len(items))):
-            return items
-    return items
 
 
 def _is_content_uri(path: str) -> bool:
@@ -243,6 +264,27 @@ def _ensure_yaml_extension(path: str) -> str:
     if path.lower().endswith((".yaml", ".yml")):
         return path
     return f"{path}.yaml"
+
+
+def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None:
+    try:
+        import tkinter  # type: ignore
+        from tkinter import filedialog  # type: ignore
+    except Exception:
+        return None
+    root = tkinter.Tk()
+    root.withdraw()
+    try:
+        path = filedialog.asksaveasfilename(
+            title=title,
+            initialdir=initial_dir,
+            initialfile=default_name,
+            defaultextension=".yaml",
+            filetypes=[("YAML", "*.yaml"), ("All files", "*.*")],
+        )
+    finally:
+        root.destroy()
+    return path or None
 
 
 def _android_read_uri(uri: str) -> bytes:
@@ -289,12 +331,10 @@ def _android_write_uri(uri: str, data: bytes) -> None:
         stream.close()
 
 
-def _ensure_beep(path: str) -> None:
+def _ensure_beep(path: str, *, freq: float = 880.0, duration: float = 0.12) -> None:
     if os.path.exists(path):
         return
     framerate = 44100
-    duration = 0.12
-    freq = 880.0
     samples = int(framerate * duration)
     with wave.open(path, "w") as wav:
         wav.setnchannels(1)
@@ -309,8 +349,15 @@ class TopBar(BoxLayout):
     def __init__(self, app, title: str, **kwargs):
         super().__init__(orientation="horizontal", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), **kwargs)
         self.app = app
-        self.add_widget(Button(text="≡", size_hint_x=None, width=_ui(BASE_BUTTON_HEIGHT),
-                               on_release=self.app.open_menu))
+        button_kwargs = {
+            "text": MENU_ICON,
+            "size_hint_x": None,
+            "width": _ui(BASE_BUTTON_HEIGHT),
+            "on_release": self.app.open_menu,
+        }
+        if APP_FONT_NAME:
+            button_kwargs["font_name"] = APP_FONT_NAME
+        self.add_widget(Button(**button_kwargs))
         self.add_widget(Label(text=title, font_size=_ui(BASE_LABEL_FONT_SIZE + 4), color=TEXT_COLOR))
 
 
@@ -351,8 +398,13 @@ class VocabRow(BoxLayout):
 class CalendarCell(BoxLayout):
     def __init__(self, day_text: str, count_text: str, **kwargs):
         super().__init__(orientation="vertical", size_hint_y=None, height=_ui(BASE_CALENDAR_CELL_HEIGHT), padding=4, **kwargs)
-        self.add_widget(Label(text=day_text, size_hint_y=None, height=_ui(24)))
-        self.add_widget(Label(text=count_text))
+        day_kwargs = {"text": day_text, "size_hint_y": None, "height": _ui(24)}
+        count_kwargs = {"text": count_text}
+        if APP_FONT_NAME:
+            day_kwargs["font_name"] = APP_FONT_NAME
+            count_kwargs["font_name"] = APP_FONT_NAME
+        self.add_widget(Label(**day_kwargs))
+        self.add_widget(Label(**count_kwargs))
 
 
 class MenuScreen(Screen):
@@ -381,8 +433,7 @@ class TrainingSetupScreen(Screen):
         btn_row.add_widget(Button(text="Wiederholen", on_release=lambda *_: self._start("review")))
         body.add_widget(btn_row)
         body.add_widget(_styled_label("Sprache"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.lang_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         self.lang_spinner.bind(text=lambda _spinner, text: self._set_lang(text))
         body.add_widget(self.lang_spinner)
         self.lang_label = _styled_label("")
@@ -535,12 +586,25 @@ class TrainingScreen(Screen):
         body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(10))
         self.timer_label = _styled_label("05:00")
         body.add_widget(self.timer_label)
+        self.card_box = BoxLayout(orientation="vertical", padding=_ui(12), spacing=_ui(8),
+                                  size_hint_y=None)
+        self.card_box.bind(minimum_height=self.card_box.setter("height"))
+        with self.card_box.canvas.before:
+            self._card_color = Color(*CARD_BG)
+            self._card_bg = RoundedRectangle(radius=[12], pos=self.card_box.pos, size=self.card_box.size)
+        self.card_box.bind(pos=self._update_card_bg, size=self._update_card_bg)
+
         self.prompt_label = _styled_label("")
-        body.add_widget(self.prompt_label)
+        self.card_box.add_widget(self.prompt_label)
+
+        self.level_label = _styled_label("Level 1", font_size=_ui(BASE_LABEL_FONT_SIZE - 2), halign="right")
+        self.card_box.add_widget(self.level_label)
+
         self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
-        body.add_widget(self.answer_input)
+        self.card_box.add_widget(self.answer_input)
         self.feedback_label = _styled_label("")
-        body.add_widget(self.feedback_label)
+        self.card_box.add_widget(self.feedback_label)
+        body.add_widget(self.card_box)
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="OK", on_release=lambda *_: self.submit()))
         btn_row.add_widget(Button(text="Pyramide", on_release=lambda *_: self.app.show_session_pyramid()))
@@ -548,6 +612,10 @@ class TrainingScreen(Screen):
         body.add_widget(btn_row)
         layout.add_widget(_make_scrollable(body))
         self.add_widget(layout)
+
+    def _update_card_bg(self, *_):
+        self._card_bg.pos = self.card_box.pos
+        self._card_bg.size = self.card_box.size
 
     def on_pre_enter(self, *args):
         self.answer_input.text = ""
@@ -588,8 +656,7 @@ class VocabScreen(Screen):
     def _build_step_lang(self) -> None:
         body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(12))
         body.add_widget(_styled_label("1. Zielsprache wählen oder anlegen"))
-        self.lang_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                    font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.lang_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         body.add_widget(self.lang_spinner)
         body.add_widget(_styled_label("Neue Zielsprache (optional)"))
         self.new_lang_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
@@ -606,8 +673,7 @@ class VocabScreen(Screen):
         self.lang_label = _styled_label("")
         body.add_widget(self.lang_label)
         body.add_widget(_styled_label("2. Thema wählen oder anlegen"))
-        self.topic_spinner = Spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
-                                     font_size=_ui(BASE_SPINNER_FONT_SIZE))
+        self.topic_spinner = _styled_spinner(text="", values=[], size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         body.add_widget(self.topic_spinner)
         body.add_widget(_styled_label("Neues Thema (optional)"))
         self.topic_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT),
@@ -798,16 +864,20 @@ class CalendarScreen(Screen):
                 continue
             key = day.isoformat()
             count = counts.get(key, 0)
-            marker = "★" if count > 0 else ""
+            marker = STAR_ICON if count > 0 else ""
             count_text = f"{marker}{count}" if count > 0 else ""
             self.grid.add_widget(CalendarCell(str(day.day), count_text))
 
 
 class JonMemApp(App):
     def build(self):
+        global APP_FONT_NAME
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
+        if os.path.exists(FONT_PATH):
+            LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
+            APP_FONT_NAME = "DejaVuSans"
         Button.font_size = _ui(BASE_BUTTON_FONT_SIZE)
         ToggleButton.font_size = _ui(BASE_BUTTON_FONT_SIZE)
         Spinner.font_size = _ui(BASE_SPINNER_FONT_SIZE)
@@ -831,6 +901,8 @@ class JonMemApp(App):
         self.log_path = os.path.join(self.data_dir, "training_log.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
+        self.almost_beep_path = os.path.join(self.data_dir, "almost.wav")
+        self.new_card_beep_path = os.path.join(self.data_dir, "new_card.wav")
         self.backup_dir = os.path.join(self.data_dir, "backups")
         os.makedirs(self.backup_dir, exist_ok=True)
 
@@ -844,10 +916,16 @@ class JonMemApp(App):
         })
 
         try:
-            _ensure_beep(self.beep_path)
+            _ensure_beep(self.beep_path, freq=880.0, duration=0.12)
+            _ensure_beep(self.almost_beep_path, freq=660.0, duration=0.12)
+            _ensure_beep(self.new_card_beep_path, freq=520.0, duration=0.14)
             self._sound_success = SoundLoader.load(self.beep_path)
+            self._sound_almost = SoundLoader.load(self.almost_beep_path)
+            self._sound_new_card = SoundLoader.load(self.new_card_beep_path)
         except Exception:
             self._sound_success = None
+            self._sound_almost = None
+            self._sound_new_card = None
 
         self._check_notification()
 
@@ -863,6 +941,10 @@ class JonMemApp(App):
         self.session_topic_filter = set()
         self.time_left = SESSION_SECONDS
         self._timer_event = None
+        self._second_chance_active = False
+        self._second_chance_item_id = None
+        self._pending_new_card = None
+        self._intro_queue = []
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -1079,11 +1161,14 @@ class JonMemApp(App):
                 if paths:
                     self._export_backup_to(paths[0])
                     return
-                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
-                              size_hint=(0.6, 0.3)).open()
-                return
             except Exception as exc:
                 self._log_error("filechooser save failed", exc)
+        if not IS_ANDROID:
+            default_name = self._default_backup_filename()
+            tk_path = _tk_save_file("Datenbank Export", os.path.expanduser("~"), default_name)
+            if tk_path:
+                self._export_backup_to(tk_path)
+                return
         if filechooser is not None and hasattr(filechooser, "choose_dir"):
             self._export_backup_choose_dir()
             return
@@ -1097,8 +1182,7 @@ class JonMemApp(App):
         try:
             dirs = filechooser.choose_dir(title="Datenbank Export", path=os.path.expanduser("~"))
             if not dirs:
-                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."),
-                              size_hint=(0.6, 0.3)).open()
+                self._export_backup_prompt()
                 return
             folder = _normalize_path(dirs[0])
             filename = self._default_backup_filename()
@@ -1268,6 +1352,8 @@ class JonMemApp(App):
         self.vocab["cards"] = cards
         meta = self.vocab.setdefault("meta", {})
         target_langs = meta.get("target_langs") or []
+        if isinstance(target_langs, str):
+            target_langs = [target_langs]
         if lang not in target_langs:
             target_langs.append(lang)
         meta["target_langs"] = target_langs
@@ -1306,7 +1392,15 @@ class JonMemApp(App):
         self.session_lang = lang or "en"
         self.session_topic_filter_enabled = bool(topic_filter_enabled)
         self.session_topic_filter = set(topic_filter or [])
-        self.session_items = self._build_session_items(mode, direction)
+        if mode == "introduce":
+            unseen_cards = self._get_unseen_cards()
+            if not unseen_cards:
+                _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."),
+                              size_hint=(0.6, 0.3)).open()
+                return
+            self.session_items = [self._card_to_item(card) for card in unseen_cards[:4]]
+        else:
+            self.session_items = self._build_session_items(mode, direction)
         if not self.session_items:
             _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."), size_hint=(0.6, 0.3)).open()
             return
@@ -1314,79 +1408,65 @@ class JonMemApp(App):
         self.session_correct = 0
         self.time_left = SESSION_SECONDS
         self.session_start = datetime.now()
+        self._second_chance_active = False
+        self._second_chance_item_id = None
+        self._pending_new_card = None
+        self._intro_queue = []
         self.sm.current = "train"
-        self._start_timer()
+        if mode == "introduce":
+            self._intro_queue = list(self.session_items)
+            self._show_next_intro_card()
+        else:
+            self._start_timer()
 
     def _build_session_items(self, mode: str, direction: str):
-        items = []
-        cards = self.vocab.get("cards", [])
-        for card in cards:
-            card_id = card.get("id")
-            if not card_id:
-                continue
-            if card.get("lang", "en") != self.session_lang:
-                continue
-            prog = self.progress.get(card_id, {}).get(direction)
-            if mode == "introduce" and prog is not None:
-                continue
-            if mode == "review" and prog is None:
-                continue
-            if mode == "review" and self.session_topic_filter_enabled:
-                if card.get("topic") not in self.session_topic_filter:
-                    continue
-            stage = 1
-            if prog is not None:
-                stage = int(prog.get("stage", 1))
-            prompt = card.get("de") if direction == "de_to_en" else card.get("en")
-            answer = card.get("en") if direction == "de_to_en" else card.get("de")
-            hint = card.get("hint_de_to_en") if direction == "de_to_en" else card.get("hint_en_to_de")
-            items.append({
-                "id": card_id,
-                "prompt": prompt,
-                "answer": answer,
-                "hint": hint,
-                "de": card.get("de", ""),
-                "en": card.get("en", ""),
-                "hint_de_to_en": card.get("hint_de_to_en", ""),
-                "hint_en_to_de": card.get("hint_en_to_de", ""),
-                "stage": stage,
-            })
-        if mode == "introduce":
-            random.shuffle(items)
-            unique_limit = max(1, SESSION_MAX_ITEMS // INTRODUCE_REPEAT_COUNT)
-            items = items[:unique_limit]
-            session = items * INTRODUCE_REPEAT_COUNT
-            return _shuffle_avoid_adjacent(session, "id")[:SESSION_MAX_ITEMS]
+        return training.build_session_items(
+            self.vocab.get("cards", []),
+            self.progress,
+            mode=mode,
+            direction=direction,
+            lang=self.session_lang,
+            topic_filter_enabled=self.session_topic_filter_enabled,
+            topic_filter=set(self.session_topic_filter),
+            max_items=SESSION_MAX_ITEMS,
+            introduce_repeat_count=INTRODUCE_REPEAT_COUNT,
+            max_stage=MAX_STAGE,
+            pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
+        )
 
-        if mode == "review":
-            stage_pools = {stage: [] for stage in range(1, MAX_STAGE + 1)}
-            for item in items:
-                stage_pools.get(item.get("stage", 1), stage_pools[1]).append(item)
-            for pool in stage_pools.values():
-                random.shuffle(pool)
+    def _card_to_item(self, card: dict) -> dict:
+        return {
+            "id": card.get("id"),
+            "prompt": card.get("de") if self.session_direction == "de_to_en" else card.get("en"),
+            "answer": card.get("en") if self.session_direction == "de_to_en" else card.get("de"),
+            "hint": card.get("hint_de_to_en") if self.session_direction == "de_to_en" else card.get("hint_en_to_de"),
+            "de": card.get("de", ""),
+            "en": card.get("en", ""),
+            "hint_de_to_en": card.get("hint_de_to_en", ""),
+            "hint_en_to_de": card.get("hint_en_to_de", ""),
+            "stage": 1,
+            "topic": card.get("topic"),
+            "lang": card.get("lang", "en"),
+        }
 
-            weight_pattern = []
-            for stage in range(1, MAX_STAGE + 1):
-                weight = PYRAMID_STAGE_WEIGHTS.get(stage, 1)
-                weight_pattern.extend([stage] * max(1, weight))
+    def _get_unseen_cards(self, *, exclude_ids: set[str] | None = None) -> list[dict]:
+        exclude_ids = exclude_ids or set()
+        cards = training.list_unseen_cards(
+            self.vocab.get("cards", []),
+            self.progress,
+            direction=self.session_direction,
+            lang=self.session_lang,
+        )
+        return [card for card in cards if card.get("id") not in exclude_ids]
 
-            session = []
-            while len(session) < SESSION_MAX_ITEMS:
-                added_any = False
-                for stage in weight_pattern:
-                    if len(session) >= SESSION_MAX_ITEMS:
-                        break
-                    pool = stage_pools.get(stage)
-                    if pool:
-                        session.append(pool.pop())
-                        added_any = True
-                if not added_any:
-                    break
-            random.shuffle(session)
-            return session
-
-        random.shuffle(items)
-        return items[:SESSION_MAX_ITEMS]
+    def _queue_new_intro_card(self) -> None:
+        existing_ids = {item.get("id") for item in self.session_items if item.get("id")}
+        unseen_cards = self._get_unseen_cards(exclude_ids=existing_ids)
+        if not unseen_cards:
+            return
+        new_item = self._card_to_item(unseen_cards[0])
+        self.session_items.append(new_item)
+        self._pending_new_card = new_item
 
     def _start_timer(self) -> None:
         if self._timer_event is not None:
@@ -1408,31 +1488,88 @@ class JonMemApp(App):
         if self.session_index < len(self.session_items):
             item = self.session_items[self.session_index]
             self.screen_train.prompt_label.text = item.get("prompt", "")
+            level = int(item.get("stage", 1) or 1)
+            self.screen_train.level_label.text = f"Level {level}"
+            self.screen_train._card_color.rgba = _level_bg_color(level)
         else:
             self.screen_train.prompt_label.text = ""
+            self.screen_train.level_label.text = "Level 1"
+            self.screen_train._card_color.rgba = CARD_BG
 
     def submit_answer(self, text: str) -> None:
         if self.session_index >= len(self.session_items):
             return
         item = self.session_items[self.session_index]
-        correct = self._evaluate_answer(text, item.get("answer", ""))
-        if correct:
+        expected = item.get("answer", "")
+        analysis = training.analyze_answer(text, expected)
+        level = int(item.get("stage", 1) or 1)
+
+        if self._second_chance_active and self._second_chance_item_id == item.get("id"):
+            correct = analysis.get("correct", False)
+            if correct:
+                self.session_correct += 1
+                if self._sound_success is not None:
+                    self._sound_success.play()
+                prev_stage, new_stage = self._update_progress(item["id"], True)
+                if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
+                    self._queue_new_intro_card()
+            else:
+                self._update_progress(item["id"], False)
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._second_chance_active = False
+            self._second_chance_item_id = None
+            self._show_answer_popup(item, correct, given_text=text)
+            self.screen_train.answer_input.text = ""
+            return
+
+        if analysis.get("correct", False):
             self.session_correct += 1
             if self._sound_success is not None:
                 self._sound_success.play()
-            self._update_progress(item["id"], True)
-        else:
-            self._update_progress(item["id"], False)
+            prev_stage, new_stage = self._update_progress(item["id"], True)
+            if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
+                self._queue_new_intro_card()
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._show_answer_popup(item, True)
+            self.screen_train.answer_input.text = ""
+            return
+
+        second_chance, hint_lines = self._second_chance_hint(level, analysis, expected)
+        if second_chance:
+            self._second_chance_active = True
+            self._second_chance_item_id = item.get("id")
+            if self._sound_almost is not None:
+                self._sound_almost.play()
+
+            # Pause timer while showing feedback
+            if self._timer_event is not None:
+                self._timer_event.cancel()
+                self._timer_event = None
+
+            self._show_second_chance_popup(hint_lines)
+            return
+
+        self._update_progress(item["id"], False)
 
         # Pause timer while showing feedback
         if self._timer_event is not None:
             self._timer_event.cancel()
             self._timer_event = None
 
-        self._show_answer_popup(item, correct)
+        self._show_answer_popup(item, False, given_text=text)
         self.screen_train.answer_input.text = ""
 
-    def _show_answer_popup(self, item: dict, correct: bool) -> None:
+    def _show_answer_popup(self, item: dict, correct: bool, given_text: str = "") -> None:
         status = "Richtig" if correct else "Falsch"
         color = "00cc66" if correct else "ff4444"
         de_text = item.get("de", "")
@@ -1442,6 +1579,10 @@ class JonMemApp(App):
 
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
         layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
+        if not correct and given_text:
+            safe_given = escape_markup(given_text)
+            layout.add_widget(Label(text=f"Deine Eingabe: [s]{safe_given}[/s]",
+                                    markup=True, size_hint_y=None, height=_ui(26)))
         layout.add_widget(Label(text=f"Deutsch: {de_text}"))
         lang = (self.session_lang or "en").upper()
         layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
@@ -1456,39 +1597,149 @@ class JonMemApp(App):
             if self.session_index >= len(self.session_items):
                 self.end_training(cancelled=False)
             else:
-                self._start_timer()
-                self.update_training_view()
+                if self._pending_new_card is not None:
+                    pending = self._pending_new_card
+                    self._pending_new_card = None
+                    self._show_new_card_popup(pending, resume_timer=True)
+                else:
+                    self._start_timer()
+                    self.update_training_view()
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
         popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
         popup.open()
 
-    def _evaluate_answer(self, given: str, expected: str) -> bool:
-        a = _normalize(given)
-        b = _normalize(expected)
-        if not a or not b:
-            return False
-        if a == b:
-            return True
-        dist = _levenshtein(a, b)
-        if len(b) <= 4:
-            return dist == 0
-        if len(b) <= 7:
-            return dist <= 1
-        return dist <= 2
+    def _show_second_chance_popup(self, hint_lines: list[str]) -> None:
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        for line in hint_lines:
+            layout.add_widget(Label(text=line))
 
-    def _update_progress(self, card_id: str, correct: bool) -> None:
+        def _resume(_):
+            popup.dismiss()
+            self._start_timer()
+            self.update_training_view()
+
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_resume))
+        popup = _styled_popup(title="Fast richtig....", content=layout, size_hint=(0.8, 0.4))
+        popup.open()
+
+    def _show_new_card_popup(self, item: dict, *, resume_timer: bool) -> None:
+        if self._sound_new_card is not None:
+            self._sound_new_card.play()
+        de_text = item.get("de", "")
+        en_text = item.get("en", "")
+        hint_de = item.get("hint_de_to_en", "")
+        hint_en = item.get("hint_en_to_de", "")
+
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+        lang = (self.session_lang or "en").upper()
+        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
+        if hint_de:
+            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+        if hint_en:
+            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+
+        def _close(_):
+            popup.dismiss()
+            if resume_timer:
+                self._start_timer()
+                self.update_training_view()
+
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_close))
+        popup = _styled_popup(title="Neue Karte!", content=layout, size_hint=(0.9, 0.7))
+        popup.open()
+
+    def _show_next_intro_card(self) -> None:
+        if not self._intro_queue:
+            self._start_timer()
+            self.update_training_view()
+            return
+        item = self._intro_queue.pop(0)
+
+        def _after_close(_):
+            popup.dismiss()
+            self._show_next_intro_card()
+
+        if self._sound_new_card is not None:
+            self._sound_new_card.play()
+        de_text = item.get("de", "")
+        en_text = item.get("en", "")
+        hint_de = item.get("hint_de_to_en", "")
+        hint_en = item.get("hint_en_to_de", "")
+        layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
+        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+        lang = (self.session_lang or "en").upper()
+        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
+        if hint_de:
+            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+        if hint_en:
+            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_after_close))
+        popup = _styled_popup(title="Neue Karte!", content=layout, size_hint=(0.9, 0.7))
+        popup.open()
+
+    def _second_chance_hint(self, level: int, analysis: dict, expected: str) -> tuple[bool, list[str]]:
+        if level >= 4:
+            return False, []
+        if not analysis.get("given_norm") or not analysis.get("expected_norm"):
+            return False, []
+        max_letters = 2 if level == 3 else 4
+        letter_errors = int(analysis.get("letter_errors", 0))
+        accent_errors = int(analysis.get("accent_errors", 0))
+        punct_errors = int(analysis.get("punct_errors", 0))
+        case_only = bool(analysis.get("case_only", False))
+        missing_word = bool(analysis.get("missing_word", False))
+
+        if letter_errors > max_letters:
+            return False, []
+
+        hints: list[str] = []
+        if level == 3:
+            if case_only:
+                hints.append("Achte auf Groß/Kleinschreibung.")
+            elif letter_errors > 0:
+                hints.append("guck noch mal genau")
+            else:
+                hints.append("Irgendwas stimmt noch nicht.")
+            return True, hints
+
+        if case_only:
+            hints.append("Achte auf Groß/Kleinschreibung.")
+        elif letter_errors > 0:
+            hints.append("guck noch mal genau")
+
+        if accent_errors > 0:
+            if "ñ" in expected or "Ñ" in expected:
+                hints.append("Achte auf die Tilde über dem n.")
+            else:
+                hints.append("Achte auf die Akzente.")
+
+        if punct_errors > 0:
+            if any(ch in expected for ch in ("'", "’", "´")):
+                hints.append("Achte auf das Apostroph.")
+            else:
+                hints.append("Achte auf die Satzzeichen.")
+
+        if level == 1 and missing_word:
+            hints.append("Hier fehlt noch ein Wort.")
+
+        if letter_errors > 0 and (accent_errors > 0 or punct_errors > 0):
+            total_errors = letter_errors + accent_errors + punct_errors
+            hints.append(f"Es gibt noch weitere Fehler (insgesamt {total_errors}).")
+
+        return True, hints
+
+    def _update_progress(self, card_id: str, correct: bool) -> tuple[int, int]:
         entry = self.progress.setdefault(card_id, {})
         dir_entry = entry.setdefault(self.session_direction, {"stage": 1})
         stage = int(dir_entry.get("stage", 1))
-        if correct:
-            stage = min(MAX_STAGE, stage + 1)
-        else:
-            stage = max(1, stage - 1)
-        dir_entry["stage"] = stage
+        new_stage = training.compute_next_stage(stage, correct, MAX_STAGE)
+        dir_entry["stage"] = new_stage
         dir_entry["last_seen"] = datetime.now().isoformat(timespec="seconds")
         dir_entry["last_result"] = bool(correct)
         _save_json(self.progress_path, self.progress)
+        return stage, new_stage
 
     def end_training(self, cancelled: bool) -> None:
         if self._timer_event is not None:
@@ -1497,6 +1748,19 @@ class JonMemApp(App):
         if cancelled:
             self.sm.current = "menu"
             return
+        if self.session_mode == "introduce" and self.time_left <= 0:
+            changed = False
+            seen_ids = {item.get("id") for item in self.session_items if item.get("id")}
+            for card_id in seen_ids:
+                entry = self.progress.get(card_id, {})
+                dir_entry = entry.get(self.session_direction)
+                if dir_entry and int(dir_entry.get("stage", 1)) == 1:
+                    entry.pop(self.session_direction, None)
+                    changed = True
+                if entry == {}:
+                    self.progress.pop(card_id, None)
+            if changed:
+                _save_json(self.progress_path, self.progress)
         total = len(self.session_items)
         summary = f"{self.session_correct} von {total} richtig."
         self._append_training_log(total)
@@ -1508,7 +1772,12 @@ class JonMemApp(App):
             _styled_popup(title="Pyramide", content=Label(text="Keine Session aktiv."), size_hint=(0.6, 0.3)).open()
             return
         stages = {i: [] for i in range(1, MAX_STAGE + 1)}
+        seen_ids = set()
         for item in self.session_items:
+            item_id = item.get("id")
+            if not item_id or item_id in seen_ids:
+                continue
+            seen_ids.add(item_id)
             prog = self.progress.get(item["id"], {}).get(self.session_direction, {})
             stage = int(prog.get("stage", 1))
             stages.setdefault(stage, []).append(item.get("prompt", ""))

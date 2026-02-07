@@ -10,11 +10,11 @@ topics:
   - id: time
     name: Uhrzeit
     lang: en
-  - id: haushalt
-    name: Haushalt
+  - id: household
+    name: Household
     lang: en
-  - id: urlaub
-    name: Urlaub
+  - id: vacaciones
+    name: Vacaciones
     lang: es
 
 cards:
@@ -158,203 +158,203 @@ cards:
     en: "when?"
     hint_de_to_en: "Frage nach Zeit."
     hint_en_to_de: "Eine Frage nach dem Zeitpunkt."
-  - id: haushalt_001_en
-    topic: haushalt
+  - id: household_001_en
+    topic: household
     lang: en
     de: "die Küche"
     en: "the kitchen"
-  - id: haushalt_002_en
-    topic: haushalt
+  - id: household_002_en
+    topic: household
     lang: en
     de: "das Wohnzimmer"
     en: "the living room"
-  - id: haushalt_003_en
-    topic: haushalt
+  - id: household_003_en
+    topic: household
     lang: en
     de: "das Schlafzimmer"
     en: "the bedroom"
-  - id: haushalt_004_en
-    topic: haushalt
+  - id: household_004_en
+    topic: household
     lang: en
     de: "das Badezimmer"
     en: "the bathroom"
-  - id: haushalt_005_en
-    topic: haushalt
+  - id: household_005_en
+    topic: household
     lang: en
     de: "der Haushalt"
     en: "the household"
-  - id: haushalt_006_en
-    topic: haushalt
+  - id: household_006_en
+    topic: household
     lang: en
     de: "die Waschmaschine"
     en: "the washing machine"
-  - id: haushalt_007_en
-    topic: haushalt
+  - id: household_007_en
+    topic: household
     lang: en
     de: "der Kühlschrank"
     en: "the fridge"
-  - id: haushalt_008_en
-    topic: haushalt
+  - id: household_008_en
+    topic: household
     lang: en
     de: "der Herd"
     en: "the stove"
-  - id: haushalt_009_en
-    topic: haushalt
+  - id: household_009_en
+    topic: household
     lang: en
     de: "die Spülmaschine"
     en: "the dishwasher"
-  - id: haushalt_010_en
-    topic: haushalt
+  - id: household_010_en
+    topic: household
     lang: en
     de: "der Staubsauger"
     en: "the vacuum cleaner"
-  - id: haushalt_011_en
-    topic: haushalt
+  - id: household_011_en
+    topic: household
     lang: en
     de: "der Mülleimer"
     en: "the trash can"
-  - id: haushalt_012_en
-    topic: haushalt
+  - id: household_012_en
+    topic: household
     lang: en
     de: "das Handtuch"
     en: "the towel"
-  - id: haushalt_013_en
-    topic: haushalt
+  - id: household_013_en
+    topic: household
     lang: en
     de: "die Seife"
     en: "the soap"
-  - id: haushalt_014_en
-    topic: haushalt
+  - id: household_014_en
+    topic: household
     lang: en
     de: "die Reinigung"
     en: "the cleaning"
-  - id: haushalt_015_en
-    topic: haushalt
+  - id: household_015_en
+    topic: household
     lang: en
     de: "der Besen"
     en: "the broom"
-  - id: haushalt_016_en
-    topic: haushalt
+  - id: household_016_en
+    topic: household
     lang: en
     de: "der Lappen"
     en: "the cloth"
-  - id: haushalt_017_en
-    topic: haushalt
+  - id: household_017_en
+    topic: household
     lang: en
     de: "die Wäsche"
     en: "the laundry"
-  - id: haushalt_018_en
-    topic: haushalt
+  - id: household_018_en
+    topic: household
     lang: en
     de: "bügeln"
     en: "to iron"
-  - id: haushalt_019_en
-    topic: haushalt
+  - id: household_019_en
+    topic: household
     lang: en
     de: "die Glühbirne"
     en: "the light bulb"
-  - id: haushalt_020_en
-    topic: haushalt
+  - id: household_020_en
+    topic: household
     lang: en
     de: "der Wasserkocher"
     en: "the kettle"
-  - id: urlaub_001_es
-    topic: urlaub
+  - id: vacaciones_001_es
+    topic: vacaciones
     lang: es
     de: "der Urlaub"
     en: "las vacaciones"
-  - id: urlaub_002_es
-    topic: urlaub
+  - id: vacaciones_002_es
+    topic: vacaciones
     lang: es
     de: "die Reise"
     en: "el viaje"
-  - id: urlaub_003_es
-    topic: urlaub
+  - id: vacaciones_003_es
+    topic: vacaciones
     lang: es
     de: "das Hotel"
     en: "el hotel"
-  - id: urlaub_004_es
-    topic: urlaub
+  - id: vacaciones_004_es
+    topic: vacaciones
     lang: es
     de: "die Reservierung"
     en: "la reserva"
-  - id: urlaub_005_es
-    topic: urlaub
+  - id: vacaciones_005_es
+    topic: vacaciones
     lang: es
     de: "der Strand"
     en: "la playa"
-  - id: urlaub_006_es
-    topic: urlaub
+  - id: vacaciones_006_es
+    topic: vacaciones
     lang: es
     de: "das Meer"
     en: "el mar"
-  - id: urlaub_007_es
-    topic: urlaub
+  - id: vacaciones_007_es
+    topic: vacaciones
     lang: es
     de: "die Sonne"
     en: "el sol"
-  - id: urlaub_008_es
-    topic: urlaub
+  - id: vacaciones_008_es
+    topic: vacaciones
     lang: es
     de: "der Flughafen"
     en: "el aeropuerto"
-  - id: urlaub_009_es
-    topic: urlaub
+  - id: vacaciones_009_es
+    topic: vacaciones
     lang: es
     de: "der Flug"
     en: "el vuelo"
-  - id: urlaub_010_es
-    topic: urlaub
+  - id: vacaciones_010_es
+    topic: vacaciones
     lang: es
     de: "der Pass"
     en: "el pasaporte"
-  - id: urlaub_011_es
-    topic: urlaub
+  - id: vacaciones_011_es
+    topic: vacaciones
     lang: es
     de: "der Koffer"
     en: "la maleta"
-  - id: urlaub_012_es
-    topic: urlaub
+  - id: vacaciones_012_es
+    topic: vacaciones
     lang: es
     de: "die Unterkunft"
     en: "el alojamiento"
-  - id: urlaub_013_es
-    topic: urlaub
+  - id: vacaciones_013_es
+    topic: vacaciones
     lang: es
     de: "die Stadt"
     en: "la ciudad"
-  - id: urlaub_014_es
-    topic: urlaub
+  - id: vacaciones_014_es
+    topic: vacaciones
     lang: es
     de: "die Sehenswürdigkeit"
     en: "el lugar de interés"
-  - id: urlaub_015_es
-    topic: urlaub
+  - id: vacaciones_015_es
+    topic: vacaciones
     lang: es
     de: "der Ausflug"
     en: "la excursión"
-  - id: urlaub_016_es
-    topic: urlaub
+  - id: vacaciones_016_es
+    topic: vacaciones
     lang: es
     de: "die Karte"
     en: "el mapa"
-  - id: urlaub_017_es
-    topic: urlaub
+  - id: vacaciones_017_es
+    topic: vacaciones
     lang: es
     de: "das Ticket"
     en: "el billete"
-  - id: urlaub_018_es
-    topic: urlaub
+  - id: vacaciones_018_es
+    topic: vacaciones
     lang: es
     de: "das Restaurant"
     en: "el restaurante"
-  - id: urlaub_019_es
-    topic: urlaub
+  - id: vacaciones_019_es
+    topic: vacaciones
     lang: es
     de: "das Frühstück"
     en: "el desayuno"
-  - id: urlaub_020_es
-    topic: urlaub
+  - id: vacaciones_020_es
+    topic: vacaciones
     lang: es
     de: "die Rechnung"
     en: "la cuenta"

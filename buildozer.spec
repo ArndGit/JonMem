@@ -18,7 +18,7 @@ package.domain = de.arndbrandes
 source.dir = .
 
 # (list) Source files to include (leave empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,yaml
+source.include_exts = py,png,jpg,kv,atlas,yaml,ttf
 
 # (list) List of inclusions using pattern matching
 #source.include_patterns = assets/*,images/*.png

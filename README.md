@@ -34,11 +34,13 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 
 ### Einführen (neue Karten)
 1. Es werden nur Karten berücksichtigt, die **noch keinen Fortschritt** für die gewählte Richtung haben.
-2. Pro Session wird eine begrenzte Anzahl **neuer** Karten ausgewählt:  
-   `unique_limit = SESSION_MAX_ITEMS / INTRODUCE_REPEAT_COUNT`
-3. Diese neuen Karten werden **innerhalb derselben Session wiederholt**:  
-   Gesamtliste = `unique_cards * INTRODUCE_REPEAT_COUNT`.
-4. Die Reihenfolge wird so gemischt, dass **die gleiche Karte nicht direkt hintereinander** erscheint.
+2. Zu Beginn werden **4 neue Karten angezeigt** (Dialog **Neue Karte!** mit Lösung + Tipps).  
+   Währenddessen läuft die Zeit nicht.
+3. Danach werden **genau diese 4 Karten in exakt der gezeigten Reihenfolge** abgefragt.
+4. Sobald eine Karte von Stufe 1 → 2 aufsteigt, wird **eine neue Karte gezeigt**  
+   (Dialog **Neue Karte!**) und **am Ende der Liste als Stufe 1** eingefügt.
+5. Wenn die Session durch Zeitablauf endet, werden **alle Stufe-1-Karten wieder als ungesehen markiert**,  
+   damit sie beim nächsten Einführen erneut angezeigt werden.
 
 ### Wiederholen (gelernte Karten)
 1. Es werden nur Karten berücksichtigt, die **bereits Fortschritt** für die gewählte Richtung haben.
@@ -55,6 +57,25 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 ### Stufen-Update nach Antwort
 - **Richtig:** Stufe +1 (max. 4)
 - **Falsch:** Stufe -1 (min. 1)
+
+## Antwortbewertung (Training)
+- **Doppelte Leerzeichen** werden immer ignoriert.
+- **EndgÃ¼ltig richtig** ist eine Antwort nur bei exakt richtiger Eingabe (GroÃ/Kleinschreibung, Akzente, Satzzeichen).
+- **Zweite Chance:** Nur bei Level 1â€“3 und nur innerhalb der jeweiligen Fehlergrenze.
+  - Titel des Hinweises: **Fast richtig....** (eigener Sound).
+
+### Level-Regeln
+- **Level 4:** Keine Ausnahmen, keine zweite Chance.
+- **Level 3:** Max. 2 Buchstaben Fehler fÃ¼r eine zweite Chance.
+  - Bei reinen GroÃ/Kleinschreibungsfehlern: Hinweis darauf.
+  - Sonst: Hinweis, dass etwas nicht stimmt (ohne Anzahl).
+- **Level 2:** Wie Level 3, aber bis 4 Buchstaben.
+  - ZusÃ¤tzlich explizite Hinweise auf Akzente/Apostroph/Satzzeichen.
+  - Bei Buchstabenfehlern **und** Akzent/Satzzeichen: Hinweis, dass es weitere Fehler gibt (mit Anzahl).
+- **Level 1:** Wie Level 2, plus Hinweis, wenn ein ganzes Wort fehlt.
+
+### AuflÃ¶sung
+- Wenn die Antwort endgÃ¼ltig falsch ist (keine zweite Chance mehr), wird die eigene Eingabe **durchgestrichen** neben der richtigen LÃ¶sung angezeigt.
 
 ## Lokales Debugging (uv)
 1. Abhängigkeiten installieren:
