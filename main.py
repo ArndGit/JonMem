@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
+from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -58,6 +59,11 @@ PYRAMID_STAGE_WEIGHTS = {
     4: 1,
 }
 
+MENU_ICON = "\u2261"
+STAR_ICON = "\u2605"
+FONT_PATH = os.path.join(os.path.dirname(__file__), "data", "fonts", "DejaVuSans.ttf")
+APP_FONT_NAME = None
+
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
 BASE_INPUT_HEIGHT = 72
@@ -70,6 +76,9 @@ TEXT_COLOR = (0.12, 0.1, 0.08, 1)
 SURFACE_BG = (0.98, 0.96, 0.93, 1)
 CARD_BG = (0.94, 0.92, 0.88, 1)
 CARD_BORDER = (0.72, 0.68, 0.63, 1)
+LEVEL_BG_2 = (0.88, 0.96, 0.9, 1)
+LEVEL_BG_3 = (0.88, 0.93, 0.99, 1)
+LEVEL_BG_4 = (0.96, 0.88, 0.95, 1)
 INPUT_BG = (1, 1, 1, 1)
 BUTTON_BG = (0.86, 0.83, 0.78, 1)
 BASE_CARD_HEIGHT = 68
@@ -109,6 +118,11 @@ class SmartTextInput(TextInput):
             return
         return super().insert_text(substring, from_undo=from_undo)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if hasattr(self, "halign"):
+            self.halign = "center"
+
 
 class ReadableSpinnerOption(SpinnerOption):
     def __init__(self, **kwargs):
@@ -118,23 +132,31 @@ class ReadableSpinnerOption(SpinnerOption):
         self.color = TEXT_COLOR
         self.font_size = _ui(BASE_SPINNER_FONT_SIZE)
         self.height = _ui(BASE_INPUT_HEIGHT)
+        if APP_FONT_NAME:
+            self.font_name = APP_FONT_NAME
 
 
 def _styled_text_input(**kwargs) -> TextInput:
     kwargs.setdefault("font_size", _ui(BASE_INPUT_FONT_SIZE))
     kwargs.setdefault("foreground_color", TEXT_COLOR)
     kwargs.setdefault("background_color", INPUT_BG)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
     return SmartTextInput(**kwargs)
 
 
 def _styled_spinner(**kwargs) -> Spinner:
     kwargs.setdefault("font_size", _ui(BASE_SPINNER_FONT_SIZE))
     kwargs.setdefault("option_cls", ReadableSpinnerOption)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
     return Spinner(**kwargs)
 
 def _styled_label(text: str, **kwargs) -> Label:
     kwargs.setdefault("font_size", _ui(BASE_LABEL_FONT_SIZE))
     kwargs.setdefault("color", TEXT_COLOR)
+    if APP_FONT_NAME:
+        kwargs.setdefault("font_name", APP_FONT_NAME)
     label = Label(text=text, **kwargs)
     label.size_hint_y = None
     label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", (lbl.width, None)))
@@ -155,6 +177,15 @@ def _styled_popup(**kwargs) -> Popup:
     kwargs.setdefault("background_color", SURFACE_BG)
     kwargs.setdefault("separator_color", CARD_BORDER)
     return Popup(**kwargs)
+
+def _level_bg_color(level: int) -> tuple[float, float, float, float]:
+    if level == 2:
+        return LEVEL_BG_2
+    if level == 3:
+        return LEVEL_BG_3
+    if level >= 4:
+        return LEVEL_BG_4
+    return CARD_BG
 
 
 def _read_text(path: str) -> str:
@@ -318,8 +349,15 @@ class TopBar(BoxLayout):
     def __init__(self, app, title: str, **kwargs):
         super().__init__(orientation="horizontal", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), **kwargs)
         self.app = app
-        self.add_widget(Button(text="≡", size_hint_x=None, width=_ui(BASE_BUTTON_HEIGHT),
-                               on_release=self.app.open_menu))
+        button_kwargs = {
+            "text": MENU_ICON,
+            "size_hint_x": None,
+            "width": _ui(BASE_BUTTON_HEIGHT),
+            "on_release": self.app.open_menu,
+        }
+        if APP_FONT_NAME:
+            button_kwargs["font_name"] = APP_FONT_NAME
+        self.add_widget(Button(**button_kwargs))
         self.add_widget(Label(text=title, font_size=_ui(BASE_LABEL_FONT_SIZE + 4), color=TEXT_COLOR))
 
 
@@ -360,8 +398,13 @@ class VocabRow(BoxLayout):
 class CalendarCell(BoxLayout):
     def __init__(self, day_text: str, count_text: str, **kwargs):
         super().__init__(orientation="vertical", size_hint_y=None, height=_ui(BASE_CALENDAR_CELL_HEIGHT), padding=4, **kwargs)
-        self.add_widget(Label(text=day_text, size_hint_y=None, height=_ui(24)))
-        self.add_widget(Label(text=count_text))
+        day_kwargs = {"text": day_text, "size_hint_y": None, "height": _ui(24)}
+        count_kwargs = {"text": count_text}
+        if APP_FONT_NAME:
+            day_kwargs["font_name"] = APP_FONT_NAME
+            count_kwargs["font_name"] = APP_FONT_NAME
+        self.add_widget(Label(**day_kwargs))
+        self.add_widget(Label(**count_kwargs))
 
 
 class MenuScreen(Screen):
@@ -543,12 +586,25 @@ class TrainingScreen(Screen):
         body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(10))
         self.timer_label = _styled_label("05:00")
         body.add_widget(self.timer_label)
+        self.card_box = BoxLayout(orientation="vertical", padding=_ui(12), spacing=_ui(8),
+                                  size_hint_y=None)
+        self.card_box.bind(minimum_height=self.card_box.setter("height"))
+        with self.card_box.canvas.before:
+            self._card_color = Color(*CARD_BG)
+            self._card_bg = RoundedRectangle(radius=[12], pos=self.card_box.pos, size=self.card_box.size)
+        self.card_box.bind(pos=self._update_card_bg, size=self._update_card_bg)
+
         self.prompt_label = _styled_label("")
-        body.add_widget(self.prompt_label)
+        self.card_box.add_widget(self.prompt_label)
+
+        self.level_label = _styled_label("Level 1", font_size=_ui(BASE_LABEL_FONT_SIZE - 2), halign="right")
+        self.card_box.add_widget(self.level_label)
+
         self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
-        body.add_widget(self.answer_input)
+        self.card_box.add_widget(self.answer_input)
         self.feedback_label = _styled_label("")
-        body.add_widget(self.feedback_label)
+        self.card_box.add_widget(self.feedback_label)
+        body.add_widget(self.card_box)
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="OK", on_release=lambda *_: self.submit()))
         btn_row.add_widget(Button(text="Pyramide", on_release=lambda *_: self.app.show_session_pyramid()))
@@ -556,6 +612,10 @@ class TrainingScreen(Screen):
         body.add_widget(btn_row)
         layout.add_widget(_make_scrollable(body))
         self.add_widget(layout)
+
+    def _update_card_bg(self, *_):
+        self._card_bg.pos = self.card_box.pos
+        self._card_bg.size = self.card_box.size
 
     def on_pre_enter(self, *args):
         self.answer_input.text = ""
@@ -804,16 +864,20 @@ class CalendarScreen(Screen):
                 continue
             key = day.isoformat()
             count = counts.get(key, 0)
-            marker = "★" if count > 0 else ""
+            marker = STAR_ICON if count > 0 else ""
             count_text = f"{marker}{count}" if count > 0 else ""
             self.grid.add_widget(CalendarCell(str(day.day), count_text))
 
 
 class JonMemApp(App):
     def build(self):
+        global APP_FONT_NAME
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
+        if os.path.exists(FONT_PATH):
+            LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
+            APP_FONT_NAME = "DejaVuSans"
         Button.font_size = _ui(BASE_BUTTON_FONT_SIZE)
         ToggleButton.font_size = _ui(BASE_BUTTON_FONT_SIZE)
         Spinner.font_size = _ui(BASE_SPINNER_FONT_SIZE)
@@ -1424,8 +1488,13 @@ class JonMemApp(App):
         if self.session_index < len(self.session_items):
             item = self.session_items[self.session_index]
             self.screen_train.prompt_label.text = item.get("prompt", "")
+            level = int(item.get("stage", 1) or 1)
+            self.screen_train.level_label.text = f"Level {level}"
+            self.screen_train._card_color.rgba = _level_bg_color(level)
         else:
             self.screen_train.prompt_label.text = ""
+            self.screen_train.level_label.text = "Level 1"
+            self.screen_train._card_color.rgba = CARD_BG
 
     def submit_answer(self, text: str) -> None:
         if self.session_index >= len(self.session_items):
