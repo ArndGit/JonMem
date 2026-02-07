@@ -51,7 +51,7 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
