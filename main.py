@@ -51,6 +51,7 @@ SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.ya
 
 SESSION_MAX_ITEMS = 10
 SESSION_SECONDS = 300
+EXAM_SECONDS_PER_CARD = 30
 MAX_STAGE = 4
 INTRODUCE_REPEAT_COUNT = 2
 PYRAMID_STAGE_WEIGHTS = {
@@ -907,7 +908,10 @@ class JonMemApp(App):
         self.session_lang = langs[0] if langs else "en"
         self.session_topic_filter_enabled = False
         self.session_topic_filter = set()
-        self.time_left = SESSION_SECONDS
+        if mode == "exam":
+            self.time_left = max(1, len(self.session_items)) * EXAM_SECONDS_PER_CARD
+        else:
+            self.time_left = SESSION_SECONDS
         self._timer_event = None
         self._second_chance_active = False
         self._second_chance_item_id = None
