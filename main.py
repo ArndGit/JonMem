@@ -13,6 +13,15 @@ import traceback
 import wave
 from datetime import datetime, timedelta
 
+# Ensure Kivy uses a writable home on Android before any Kivy import.
+if "ANDROID_PRIVATE" in os.environ:
+    _kivy_home = os.path.join(os.environ["ANDROID_PRIVATE"], ".kivy")
+    os.environ.setdefault("KIVY_HOME", _kivy_home)
+    try:
+        os.makedirs(_kivy_home, exist_ok=True)
+    except OSError:
+        pass
+
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
@@ -908,10 +917,7 @@ class JonMemApp(App):
         self.session_lang = langs[0] if langs else "en"
         self.session_topic_filter_enabled = False
         self.session_topic_filter = set()
-        if mode == "exam":
-            self.time_left = max(1, len(self.session_items)) * EXAM_SECONDS_PER_CARD
-        else:
-            self.time_left = SESSION_SECONDS
+        self.time_left = SESSION_SECONDS
         self._timer_event = None
         self._second_chance_active = False
         self._second_chance_item_id = None
@@ -1714,7 +1720,10 @@ class JonMemApp(App):
             return
         self.session_index = 0
         self.session_correct = 0
-        self.time_left = SESSION_SECONDS
+        if mode == "exam":
+            self.time_left = max(1, len(self.session_items)) * EXAM_SECONDS_PER_CARD
+        else:
+            self.time_left = SESSION_SECONDS
         self.session_start = datetime.now()
         self._second_chance_active = False
         self._second_chance_item_id = None
