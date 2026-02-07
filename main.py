@@ -62,6 +62,7 @@ PYRAMID_STAGE_WEIGHTS = {
 
 MENU_ICON = "\u2261"
 STAR_ICON = "\u2605"
+MOON_ICON = "\u263E"
 FONT_PATH = os.path.join(os.path.dirname(__file__), "data", "fonts", "DejaVuSans.ttf")
 APP_FONT_NAME = None
 
@@ -439,6 +440,9 @@ class TrainingSetupScreen(Screen):
         body.add_widget(self.lang_spinner)
         self.lang_label = _styled_label("")
         body.add_widget(self.lang_label)
+        body.add_widget(_styled_label("Unfertige Kategorien (Einführen)"))
+        self.intro_status = _styled_label("")
+        body.add_widget(self.intro_status)
         body.add_widget(_styled_label("Richtung"))
         dir_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         self.dir_de = ToggleButton(text="DE → EN", group="direction", state="down")
@@ -469,6 +473,7 @@ class TrainingSetupScreen(Screen):
     def _set_dir(self, direction: str) -> None:
         self._direction = direction
         self._update_direction_labels()
+        self._refresh_intro_status()
 
     def _start(self, mode: str) -> None:
         lang = self._lang or (self.lang_spinner.text or "").strip()
@@ -476,6 +481,7 @@ class TrainingSetupScreen(Screen):
 
     def on_pre_enter(self, *args):
         self._refresh_languages()
+        self._refresh_intro_status()
         self._refresh_topic_status()
 
     def _refresh_languages(self) -> None:
@@ -497,6 +503,7 @@ class TrainingSetupScreen(Screen):
         else:
             self.lang_label.text = "Aktuell: -"
         self._update_direction_labels()
+        self._refresh_intro_status()
         self._refresh_topic_status()
 
     def _update_direction_labels(self) -> None:
@@ -521,6 +528,17 @@ class TrainingSetupScreen(Screen):
             return
         selected = self._topic_filter()
         self.topic_status.text = f"Themen: {len(selected)} gewählt"
+
+    def _refresh_intro_status(self) -> None:
+        if not self._lang:
+            self.intro_status.text = "Kategorien: -"
+            return
+        items = self.app.get_intro_topic_progress(self._lang, self._direction)
+        if not items:
+            self.intro_status.text = "Kategorien: Alle abgeschlossen"
+            return
+        lines = [f"{it['name']}: {it['percent']}%" for it in items]
+        self.intro_status.text = "Kategorien:\n" + "\n".join(lines)
 
     def _open_topic_picker(self) -> None:
         lang = self._lang or (self.lang_spinner.text or "").strip()
@@ -598,8 +616,14 @@ class TrainingScreen(Screen):
         self.prompt_label = _styled_label("")
         self.card_box.add_widget(self.prompt_label)
 
+        info_row = BoxLayout(orientation="horizontal", spacing=_ui(8), size_hint_y=None)
+        self.category_label = _styled_label("Kategorie: -", font_size=_ui(BASE_LABEL_FONT_SIZE - 2), halign="left")
+        self.category_label.size_hint_x = 0.7
         self.level_label = _styled_label("Level 1", font_size=_ui(BASE_LABEL_FONT_SIZE - 2), halign="right")
-        self.card_box.add_widget(self.level_label)
+        self.level_label.size_hint_x = 0.3
+        info_row.add_widget(self.category_label)
+        info_row.add_widget(self.level_label)
+        self.card_box.add_widget(info_row)
 
         self.answer_input = _styled_text_input(multiline=False, size_hint_y=None, height=_ui(BASE_INPUT_HEIGHT))
         self.card_box.add_widget(self.answer_input)
@@ -864,9 +888,15 @@ class CalendarScreen(Screen):
                 self.grid.add_widget(CalendarCell("", ""))
                 continue
             key = day.isoformat()
-            count = counts.get(key, 0)
-            marker = STAR_ICON if count > 0 else ""
-            count_text = f"{marker}{count}" if count > 0 else ""
+            day_counts = counts.get(key, {"introduce": 0, "review": 0})
+            introduce_count = day_counts.get("introduce", 0)
+            review_count = day_counts.get("review", 0)
+            parts = []
+            if introduce_count > 0:
+                parts.append(f"{MOON_ICON}{introduce_count}")
+            if review_count > 0:
+                parts.append(f"{STAR_ICON}{review_count}")
+            count_text = " ".join(parts)
             self.grid.add_widget(CalendarCell(str(day.day), count_text))
 
 
@@ -1103,6 +1133,66 @@ class JonMemApp(App):
             if topic.get("lang", "en") == lang:
                 topics.append(topic.get("name", ""))
         return [t for t in topics if t]
+
+    def get_topic_name(self, topic_id: str | None, lang: str | None = None) -> str:
+        if not topic_id:
+            return ""
+        for topic in self.vocab.get("topics", []):
+            if topic.get("id") != topic_id:
+                continue
+            if lang and topic.get("lang", "en") != lang:
+                continue
+            return topic.get("name", "") or topic_id
+        return topic_id
+
+    def get_intro_topic_progress(self, lang: str, direction: str) -> list[dict]:
+        if not lang:
+            return []
+        topics = [t for t in self.vocab.get("topics", []) if t.get("lang", "en") == lang]
+        topic_names = {t.get("id"): t.get("name", "") for t in topics}
+        totals: dict[str, int] = {}
+        introduced: dict[str, int] = {}
+        for card in self.vocab.get("cards", []):
+            if card.get("lang", "en") != lang:
+                continue
+            topic_id = card.get("topic")
+            if not topic_id:
+                continue
+            totals[topic_id] = totals.get(topic_id, 0) + 1
+            if self.progress.get(card.get("id", ""), {}).get(direction) is not None:
+                introduced[topic_id] = introduced.get(topic_id, 0) + 1
+        items = []
+        for topic_id, total in totals.items():
+            if total <= 0:
+                continue
+            done = introduced.get(topic_id, 0)
+            percent = int(round((done / total) * 100))
+            if percent >= 100:
+                continue
+            items.append({
+                "id": topic_id,
+                "name": topic_names.get(topic_id, "") or topic_id,
+                "percent": percent,
+                "total": total,
+                "done": done,
+            })
+        items.sort(key=lambda it: (it["percent"], it["name"].lower()))
+        return items
+
+    def _is_topic_complete(self, topic_id: str, lang: str, direction: str) -> bool:
+        if not topic_id or not lang:
+            return False
+        total = 0
+        done = 0
+        for card in self.vocab.get("cards", []):
+            if card.get("lang", "en") != lang:
+                continue
+            if card.get("topic") != topic_id:
+                continue
+            total += 1
+            if self.progress.get(card.get("id", ""), {}).get(direction) is not None:
+                done += 1
+        return total > 0 and done >= total
 
     def get_cards_for_topic(self, lang: str, topic_name: str):
         topic_id = None
@@ -1423,13 +1513,50 @@ class JonMemApp(App):
         self.session_lang = lang or "en"
         self.session_topic_filter_enabled = bool(topic_filter_enabled)
         self.session_topic_filter = set(topic_filter or [])
+        self.session_intro_topic = None
+        self._intro_completed_before = False
         if mode == "introduce":
-            unseen_cards = self._get_unseen_cards()
-            if not unseen_cards:
+            intro_topics = self.get_intro_topic_progress(self.session_lang, self.session_direction)
+            if not intro_topics:
+                _styled_popup(title="Training", content=Label(text="Alle Kategorien sind eingeführt."),
+                              size_hint=(0.7, 0.3)).open()
+                return
+            topic_id = intro_topics[0]["id"]
+            self.session_intro_topic = topic_id
+            self._intro_completed_before = self._is_topic_complete(
+                topic_id, self.session_lang, self.session_direction
+            )
+            unseen_cards = self._get_unseen_cards(topic_id=topic_id)
+            rng = random
+            rng.shuffle(unseen_cards)
+            unique_limit = max(1, SESSION_MAX_ITEMS // max(1, INTRODUCE_REPEAT_COUNT))
+            unseen_items = [self._card_to_item(card) for card in unseen_cards[:unique_limit]]
+            if len(unseen_items) < unique_limit:
+                needed = unique_limit - len(unseen_items)
+                review_fill = training.build_session_items(
+                    self.vocab.get("cards", []),
+                    self.progress,
+                    mode="review",
+                    direction=self.session_direction,
+                    lang=self.session_lang,
+                    topic_filter_enabled=True,
+                    topic_filter={topic_id},
+                    max_items=needed,
+                    introduce_repeat_count=INTRODUCE_REPEAT_COUNT,
+                    max_stage=MAX_STAGE,
+                    pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
+                    rng=random,
+                )
+                unique_items = unseen_items + review_fill
+            else:
+                unique_items = unseen_items
+            if not unique_items:
                 _styled_popup(title="Training", content=Label(text="Keine passenden Karten gefunden."),
                               size_hint=(0.6, 0.3)).open()
                 return
-            self.session_items = [self._card_to_item(card) for card in unseen_cards[:4]]
+            session = unique_items * max(1, INTRODUCE_REPEAT_COUNT)
+            self.session_items = training.shuffle_avoid_adjacent(session, "id", random)[:SESSION_MAX_ITEMS]
+            self._intro_queue = list(unseen_items)
         else:
             self.session_items = self._build_session_items(mode, direction)
         if not self.session_items:
@@ -1442,12 +1569,13 @@ class JonMemApp(App):
         self._second_chance_active = False
         self._second_chance_item_id = None
         self._pending_new_card = None
-        self._intro_queue = []
         self.sm.current = "train"
         if mode == "introduce":
-            self._intro_queue = list(self.session_items)
+            if not self._intro_queue:
+                self._intro_queue = list(self.session_items)
             self._show_next_intro_card()
         else:
+            self._intro_queue = []
             self._start_timer()
 
     def _build_session_items(self, mode: str, direction: str):
@@ -1465,7 +1593,12 @@ class JonMemApp(App):
             pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
         )
 
-    def _card_to_item(self, card: dict) -> dict:
+    def _card_to_item(self, card: dict, prog: dict | None = None) -> dict:
+        stage = 1
+        if prog is None:
+            prog = self.progress.get(card.get("id", ""), {}).get(self.session_direction)
+        if prog is not None:
+            stage = int(prog.get("stage", 1))
         return {
             "id": card.get("id"),
             "prompt": card.get("de") if self.session_direction == "de_to_en" else card.get("en"),
@@ -1476,12 +1609,12 @@ class JonMemApp(App):
             "hint_de_to_en": card.get("hint_de_to_en", ""),
             "hint_en_to_de": card.get("hint_en_to_de", ""),
             "mnemonic": card.get("mnemonic", ""),
-            "stage": 1,
+            "stage": stage,
             "topic": card.get("topic"),
             "lang": card.get("lang", "en"),
         }
 
-    def _get_unseen_cards(self, *, exclude_ids: set[str] | None = None) -> list[dict]:
+    def _get_unseen_cards(self, *, exclude_ids: set[str] | None = None, topic_id: str | None = None) -> list[dict]:
         exclude_ids = exclude_ids or set()
         cards = training.list_unseen_cards(
             self.vocab.get("cards", []),
@@ -1489,11 +1622,14 @@ class JonMemApp(App):
             direction=self.session_direction,
             lang=self.session_lang,
         )
+        if topic_id:
+            cards = [card for card in cards if card.get("topic") == topic_id]
         return [card for card in cards if card.get("id") not in exclude_ids]
 
     def _queue_new_intro_card(self) -> None:
         existing_ids = {item.get("id") for item in self.session_items if item.get("id")}
-        unseen_cards = self._get_unseen_cards(exclude_ids=existing_ids)
+        topic_id = self.session_intro_topic if self.session_mode == "introduce" else None
+        unseen_cards = self._get_unseen_cards(exclude_ids=existing_ids, topic_id=topic_id)
         if not unseen_cards:
             return
         new_item = self._card_to_item(unseen_cards[0])
@@ -1521,10 +1657,13 @@ class JonMemApp(App):
             item = self.session_items[self.session_index]
             self.screen_train.prompt_label.text = item.get("prompt", "")
             level = int(item.get("stage", 1) or 1)
+            topic_name = self.get_topic_name(item.get("topic"), self.session_lang)
+            self.screen_train.category_label.text = f"Kategorie: {topic_name or '-'}"
             self.screen_train.level_label.text = f"Level {level}"
             self.screen_train._card_color.rgba = _level_bg_color(level)
         else:
             self.screen_train.prompt_label.text = ""
+            self.screen_train.category_label.text = "Kategorie: -"
             self.screen_train.level_label.text = "Level 1"
             self.screen_train._card_color.rgba = CARD_BG
 
@@ -1806,6 +1945,17 @@ class JonMemApp(App):
         total = len(self.session_items)
         summary = f"{self.session_correct} von {total} richtig."
         self._append_training_log(total)
+        if self.session_mode == "introduce" and self.session_intro_topic:
+            now_complete = self._is_topic_complete(
+                self.session_intro_topic, self.session_lang, self.session_direction
+            )
+            if now_complete and not self._intro_completed_before:
+                topic_name = self.get_topic_name(self.session_intro_topic, self.session_lang)
+                _styled_popup(
+                    title="Erfolg",
+                    content=Label(text=f"Kategorie abgeschlossen: {topic_name}"),
+                    size_hint=(0.7, 0.3),
+                ).open()
         _styled_popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
         self.sm.current = "menu"
 
@@ -1858,8 +2008,16 @@ class JonMemApp(App):
                 day = entry.get("started", "")[:10]
             except Exception:
                 continue
-            if day:
-                counts[day] = counts.get(day, 0) + 1
+            if not day:
+                continue
+            day_entry = counts.setdefault(day, {"introduce": 0, "review": 0})
+            mode = entry.get("mode")
+            if mode == "introduce":
+                day_entry["introduce"] += 1
+            elif mode == "review":
+                day_entry["review"] += 1
+            else:
+                day_entry["review"] += 1
         return counts
 
 
