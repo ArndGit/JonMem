@@ -55,6 +55,8 @@ __version__ = "0.3"
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
+ANDROID_EXPORT_REQUEST = 41001
+ANDROID_IMPORT_REQUEST = 41002
 
 SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.yaml")
 
@@ -99,7 +101,7 @@ BUTTON_BG = (0.86, 0.83, 0.78, 1)
 BASE_CARD_HEIGHT = 68
 BASE_CALENDAR_CELL_HEIGHT = 70
 
-LICENSE_TEXT = """Copyright (C) 2025 Arnd Brandes.
+LICENSE_TEXT = """Copyright (C) 2026 Arnd Brandes.
 Dieses Programm kann durch jedermann gemäß den Bestimmungen der Deutschen Freien Software Lizenz genutzt werden.
 
 DEUTSCHE FREIE SOFTWARE LIZENZ (DFSL)
@@ -158,6 +160,12 @@ class SmartTextInput(TextInput):
             self.do_backspace(from_undo=from_undo)
             return
         return super().insert_text(substring, from_undo=from_undo)
+
+    def keyboard_on_key_down(self, window, keycode, text, modifiers):
+        if keycode and keycode[1] == "backspace":
+            self.do_backspace()
+            return True
+        return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -231,6 +239,11 @@ def _level_bg_color(level: int) -> tuple[float, float, float, float]:
 
 def _read_text(path: str) -> str:
     with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        return handle.read()
+
+
+def _read_bytes(path: str) -> bytes:
+    with open(path, "rb") as handle:
         return handle.read()
 
 
@@ -954,6 +967,9 @@ class JonMemApp(App):
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
+        self._android_activity_bound = False
+        self._android_export_pending_path = None
+        self._android_import_pending = False
         if os.path.exists(FONT_PATH):
             LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
             APP_FONT_NAME = "DejaVuSans"
@@ -970,6 +986,7 @@ class JonMemApp(App):
         Spinner.background_color = BUTTON_BG
         if IS_ANDROID:
             Window.softinput_mode = "resize"
+            self._bind_android_activity()
         Window.bind(on_focus=self._on_window_focus)
         Window.clearcolor = SURFACE_BG
 
@@ -1060,6 +1077,126 @@ class JonMemApp(App):
     def on_resume(self):
         self._force_redraw()
         return True
+
+    def _flush_state(self) -> None:
+        try:
+            self._save_vocab()
+        except Exception as exc:
+            self._log_error("flush vocab failed", exc)
+        try:
+            _save_json(self.progress_path, self.progress)
+        except Exception as exc:
+            self._log_error("flush progress failed", exc)
+        try:
+            _save_json(self.log_path, self.training_log)
+        except Exception as exc:
+            self._log_error("flush training log failed", exc)
+        try:
+            _save_json(self.exam_log_path, self.exam_log)
+        except Exception as exc:
+            self._log_error("flush exam log failed", exc)
+        try:
+            _save_json(self.last_session_log_path, self.last_session_log)
+        except Exception as exc:
+            self._log_error("flush last session log failed", exc)
+
+    def _bind_android_activity(self) -> None:
+        if self._android_activity_bound:
+            return
+        try:
+            from android import activity  # type: ignore
+        except Exception as exc:
+            self._log_error("android activity bind failed", exc)
+            return
+        activity.bind(on_activity_result=self._on_android_activity_result)
+        self._android_activity_bound = True
+
+    def _on_android_activity_result(self, request_code, result_code, data) -> None:
+        if request_code == ANDROID_EXPORT_REQUEST:
+            self._handle_android_export_result(result_code, data)
+            return
+        if request_code == ANDROID_IMPORT_REQUEST:
+            self._handle_android_import_result(result_code, data)
+            return
+
+    def _handle_android_export_result(self, result_code, data) -> None:
+        pending_path = self._android_export_pending_path
+        self._android_export_pending_path = None
+        if pending_path is None:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            Activity = autoclass("android.app.Activity")
+            Intent = autoclass("android.content.Intent")
+            if result_code != Activity.RESULT_OK or data is None:
+                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."), size_hint=(0.7, 0.3)).open()
+                return
+            uri = data.getData()
+            if uri is None:
+                raise RuntimeError("no uri returned")
+            try:
+                take_flags = data.getFlags() & (
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                resolver = activity.getContentResolver()
+                resolver.takePersistableUriPermission(uri, take_flags)
+            except Exception:
+                pass
+            data_bytes = _read_bytes(pending_path)
+            _android_write_uri(uri.toString(), data_bytes)
+            _styled_popup(title="Datenbank Export", content=Label(text="Export erfolgreich."), size_hint=(0.7, 0.3)).open()
+        except Exception as exc:
+            self._log_error("android export failed", exc)
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _handle_android_import_result(self, result_code, data) -> None:
+        self._android_import_pending = False
+        try:
+            from jnius import autoclass  # type: ignore
+            Activity = autoclass("android.app.Activity")
+            Intent = autoclass("android.content.Intent")
+            if result_code != Activity.RESULT_OK or data is None:
+                _styled_popup(title="Datenbank Import", content=Label(text="Import abgebrochen."), size_hint=(0.7, 0.3)).open()
+                return
+            uri = data.getData()
+            if uri is None:
+                raise RuntimeError("no uri returned")
+            try:
+                take_flags = data.getFlags() & (
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                resolver = activity.getContentResolver()
+                resolver.takePersistableUriPermission(uri, take_flags)
+            except Exception:
+                pass
+            raw = _android_read_uri(uri.toString())
+            try:
+                filename = f"import_{datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml"
+                path = os.path.join(self.backup_dir, filename)
+                with open(path, "wb") as handle:
+                    handle.write(raw)
+            except Exception:
+                pass
+            data_dict = _load_yaml_bytes(raw)
+            self._apply_import_data(data_dict)
+            _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.7, 0.3)).open()
+        except Exception as exc:
+            self._log_error("android import failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _android_start_activity(self, intent, request_code: int) -> None:
+        from jnius import autoclass  # type: ignore
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        activity.startActivityForResult(intent, request_code)
+
+    def on_pause(self):
+        self._flush_state()
+        return True
+
+    def on_stop(self):
+        self._flush_state()
 
     def _log_error(self, label: str, exc: Exception | None = None) -> None:
         msg = f"[{datetime.now().isoformat(timespec='seconds')}] {label}"
@@ -1388,6 +1525,9 @@ class JonMemApp(App):
         webbrowser.open(SUPPORT_URL)
 
     def _export_backup(self) -> None:
+        if IS_ANDROID:
+            self._export_backup_android()
+            return
         if filechooser is not None and hasattr(filechooser, "save_file"):
             try:
                 paths = filechooser.save_file(title="Datenbank Export", path=os.path.expanduser("~"),
@@ -1411,6 +1551,25 @@ class JonMemApp(App):
     def _default_backup_filename(self) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"backup_{timestamp}.yaml"
+
+    def _export_backup_android(self) -> None:
+        try:
+            self._flush_state()
+            filename = self._default_backup_filename()
+            path = os.path.join(self.backup_dir, filename)
+            payload = self._build_backup_payload()
+            _save_yaml(path, payload)
+            from jnius import autoclass  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("application/x-yaml")
+            intent.putExtra(Intent.EXTRA_TITLE, filename)
+            self._android_export_pending_path = path
+            self._android_start_activity(intent, ANDROID_EXPORT_REQUEST)
+        except Exception as exc:
+            self._log_error("android export start failed", exc)
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
 
     def _export_backup_choose_dir(self) -> None:
         try:
@@ -1449,13 +1608,8 @@ class JonMemApp(App):
         self._export_backup_to(path, show_path=True)
 
     def _export_backup_to(self, path: str, show_path: bool = False) -> None:
-        payload = {
-            "meta": {"created": datetime.now().isoformat(timespec="seconds")},
-            "vocab": self.vocab,
-            "progress": self.progress,
-            "training_log": self.training_log,
-            "exam_log": self.exam_log,
-        }
+        self._flush_state()
+        payload = self._build_backup_payload()
         try:
             path = _normalize_path(path.strip())
             path = _ensure_yaml_extension(path)
@@ -1475,6 +1629,9 @@ class JonMemApp(App):
             _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
 
     def _import_backup_prompt(self) -> None:
+        if IS_ANDROID:
+            self._import_backup_android()
+            return
         if filechooser is not None and hasattr(filechooser, "open_file"):
             try:
                 paths = filechooser.open_file(title="Datenbank Import", path=os.path.expanduser("~"),
@@ -1509,22 +1666,49 @@ class JonMemApp(App):
                 data = _load_yaml_bytes(raw)
             else:
                 data = _load_yaml(path)
-            if "vocab" in data:
-                self.vocab = data["vocab"]
-                self._save_vocab()
-            if "progress" in data:
-                self.progress = data["progress"]
-                _save_json(self.progress_path, self.progress)
-            if "training_log" in data:
-                self.training_log = data["training_log"]
-                _save_json(self.log_path, self.training_log)
-            if "exam_log" in data:
-                self.exam_log = data["exam_log"]
-                _save_json(self.exam_log_path, self.exam_log)
+            self._apply_import_data(data)
             _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
         except Exception as exc:
             self._log_error("backup import failed", exc)
             _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+
+    def _import_backup_android(self) -> None:
+        try:
+            from jnius import autoclass  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("*/*")
+            mime_types = ["application/x-yaml", "text/yaml", "application/yaml", "text/plain"]
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mime_types)
+            self._android_import_pending = True
+            self._android_start_activity(intent, ANDROID_IMPORT_REQUEST)
+        except Exception as exc:
+            self._log_error("android import start failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _build_backup_payload(self) -> dict:
+        return {
+            "meta": {"created": datetime.now().isoformat(timespec="seconds")},
+            "vocab": self.vocab,
+            "progress": self.progress,
+            "training_log": self.training_log,
+            "exam_log": self.exam_log,
+        }
+
+    def _apply_import_data(self, data: dict) -> None:
+        if "vocab" in data:
+            self.vocab = data["vocab"]
+            self._save_vocab()
+        if "progress" in data:
+            self.progress = data["progress"]
+            _save_json(self.progress_path, self.progress)
+        if "training_log" in data:
+            self.training_log = data["training_log"]
+            _save_json(self.log_path, self.training_log)
+        if "exam_log" in data:
+            self.exam_log = data["exam_log"]
+            _save_json(self.exam_log_path, self.exam_log)
 
     def show_intro_category_picker(self, lang: str, direction: str) -> None:
         lang = (lang or "").strip()
@@ -2183,9 +2367,12 @@ class JonMemApp(App):
         if hint_en:
             layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
 
-        def _next(_):
+        def _store_mnemonic():
             self._save_card_mnemonic(item.get("id"), mnemonic_input.text)
             item["mnemonic"] = (mnemonic_input.text or "").strip()
+
+        def _next(_):
+            _store_mnemonic()
             popup.dismiss()
             self.session_index += 1
             if self.session_index >= len(self.session_items):
@@ -2200,7 +2387,14 @@ class JonMemApp(App):
                     self.update_training_view()
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
-        popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
+        scroll = _make_scrollable(layout)
+        popup = _styled_popup(title="Lösung", content=scroll, size_hint=(0.92, 0.85))
+        popup.bind(on_dismiss=lambda *_: _store_mnemonic())
+        mnemonic_input.bind(
+            focus=lambda _inp, focused: Clock.schedule_once(lambda *_: _scroll_to_widget(mnemonic_input), 0.05)
+            if focused else None
+        )
+        popup.bind(on_open=lambda *_: Clock.schedule_once(lambda *_: _scroll_to_widget(mnemonic_input), 0.05))
         popup.open()
 
     def _show_second_chance_popup(self, hint_lines: list[str]) -> None:

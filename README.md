@@ -7,7 +7,7 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 - Einführen (neue Karten) und Wiederholen (gelernte Karten)
 - Pyramiden-Training mit Stufen (Leitner-ähnlich)
 - Themenfilter für Wiederholen (persistente Experten-Option)
-- Export/Import der lokalen Datenbank (YAML)
+- Export/Import der lokalen Datenbank (YAML, Android: nur SAF-Dateiauswahl)
 - Antwortfeld hat sofort Fokus; gesuchtes Wort ist groß und zentriert
 - Debug-Report mit Session-Protokoll + Export in benutzerzugänglichen Speicher
 - Lizenztext ist in der App eingebettet
