@@ -13,6 +13,8 @@ import traceback
 import wave
 from datetime import datetime, timedelta
 
+import backup_io
+
 # Ensure Kivy uses a writable home on Android before any Kivy import.
 if "ANDROID_PRIVATE" in os.environ:
     _kivy_home = os.path.join(os.environ["ANDROID_PRIVATE"], ".kivy")
@@ -51,7 +53,7 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
@@ -322,6 +324,12 @@ def _ensure_yaml_extension(path: str) -> str:
     return f"{path}.yaml"
 
 
+def _ensure_backup_extension(path: str) -> str:
+    if _is_content_uri(path):
+        return path
+    return backup_io.ensure_backup_extension(path)
+
+
 def _ensure_txt_extension(path: str) -> str:
     if _is_content_uri(path):
         return path
@@ -362,8 +370,8 @@ def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None
             title=title,
             initialdir=initial_dir,
             initialfile=default_name,
-            defaultextension=".yaml",
-            filetypes=[("YAML", "*.yaml"), ("All files", "*.*")],
+            defaultextension=backup_io.BACKUP_EXT,
+            filetypes=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"), ("YAML", "*.yaml"), ("All files", "*.*")],
         )
     finally:
         root.destroy()
@@ -1229,15 +1237,14 @@ class JonMemApp(App):
                 pass
             raw = _android_read_uri(uri.toString())
             try:
-                filename = f"import_{datetime.now().strftime('%Y%m%d_%H%M%S')}.yaml"
+                filename = f"import_{datetime.now().strftime('%Y%m%d_%H%M%S')}{backup_io.BACKUP_EXT}"
                 path = os.path.join(self.backup_dir, filename)
                 with open(path, "wb") as handle:
                     handle.write(raw)
             except Exception:
                 pass
-            data_dict = _load_yaml_bytes(raw)
-            self._apply_import_data(data_dict)
-            _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.7, 0.3)).open()
+            payload = backup_io.load_payload_from_yaml_bytes(raw)
+            self._preview_import_payload(payload, source_label=uri.toString())
         except Exception as exc:
             self._log_error("android import failed", exc)
             _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
@@ -1583,7 +1590,9 @@ class JonMemApp(App):
     def _show_license(self) -> None:
         text = LICENSE_TEXT
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
-        box.add_widget(_styled_text_input(text=text, readonly=True))
+        text_box = BoxLayout(orientation="vertical", spacing=_ui(4))
+        text_box.add_widget(_styled_label(text))
+        box.add_widget(_make_scrollable(text_box))
         box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                               on_release=lambda *_: popup.dismiss()))
         popup = _styled_popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
@@ -1600,7 +1609,8 @@ class JonMemApp(App):
         if filechooser is not None and hasattr(filechooser, "save_file"):
             try:
                 paths = filechooser.save_file(title="Datenbank Export", path=os.path.expanduser("~"),
-                                              filters=[("YAML", "*.yaml")])
+                                              filters=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"),
+                                                       ("YAML", "*.yaml")])
                 if paths:
                     self._export_backup_to(paths[0])
                     return
@@ -1619,7 +1629,7 @@ class JonMemApp(App):
 
     def _default_backup_filename(self) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"backup_{timestamp}.yaml"
+        return f"backup_{timestamp}{backup_io.BACKUP_EXT}"
 
     def _export_backup_android(self) -> None:
         try:
@@ -1627,12 +1637,12 @@ class JonMemApp(App):
             filename = self._default_backup_filename()
             path = os.path.join(self.backup_dir, filename)
             payload = self._build_backup_payload()
-            _save_yaml(path, payload)
+            backup_io.persist_payload_to_file(path, payload)
             from jnius import autoclass  # type: ignore
             Intent = autoclass("android.content.Intent")
             intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
-            intent.setType("application/x-yaml")
+            intent.setType("application/octet-stream")
             intent.putExtra(Intent.EXTRA_TITLE, filename)
             self._android_export_pending_path = path
             self._android_start_activity(intent, ANDROID_EXPORT_REQUEST)
@@ -1681,16 +1691,16 @@ class JonMemApp(App):
         payload = self._build_backup_payload()
         try:
             path = _normalize_path(path.strip())
-            path = _ensure_yaml_extension(path)
+            path = _ensure_backup_extension(path)
             if _is_content_uri(path):
-                data = _dump_yaml_bytes(payload)
+                data = backup_io.dump_payload_to_yaml_bytes(payload)
                 _android_write_uri(path, data)
                 text = "Export erfolgreich."
             else:
                 dir_path = os.path.dirname(path)
                 if dir_path:
                     os.makedirs(dir_path, exist_ok=True)
-                _save_yaml(path, payload)
+                backup_io.persist_payload_to_file(path, payload)
                 text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
             _styled_popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
         except Exception as exc:
@@ -1704,9 +1714,10 @@ class JonMemApp(App):
         if filechooser is not None and hasattr(filechooser, "open_file"):
             try:
                 paths = filechooser.open_file(title="Datenbank Import", path=os.path.expanduser("~"),
-                                              filters=[("YAML", "*.yaml")], multiple=False)
+                                              filters=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"),
+                                                       ("YAML", "*.yaml")], multiple=False)
                 if paths:
-                    self._import_backup(paths[0])
+                    self._preview_import_from_path(paths[0])
                 return
             except Exception as exc:
                 self._log_error("filechooser open failed", exc)
@@ -1718,7 +1729,7 @@ class JonMemApp(App):
 
         def do_import(_):
             popup.dismiss()
-            self._import_backup(path_input.text.strip())
+            self._preview_import_from_path(path_input.text.strip())
 
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Importieren", on_release=do_import))
@@ -1727,19 +1738,130 @@ class JonMemApp(App):
         popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.5))
         popup.open()
 
-    def _import_backup(self, path: str) -> None:
+    def _preview_import_from_path(self, path: str) -> None:
         try:
             path = _normalize_path(path.strip())
+            if not path:
+                return
             if _is_content_uri(path):
                 raw = _android_read_uri(path)
-                data = _load_yaml_bytes(raw)
+                payload = backup_io.load_payload_from_yaml_bytes(raw)
+                source_label = path
             else:
-                data = _load_yaml(path)
-            self._apply_import_data(data)
-            _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
+                payload = backup_io.load_payload_from_path(path)
+                source_label = path
+            self._preview_import_payload(payload, source_label)
+        except Exception as exc:
+            self._log_error("backup import load failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+
+    def _preview_import_payload(self, payload: dict, source_label: str) -> None:
+        try:
+            payload = backup_io.normalize_backup_payload(payload)
+            scan = backup_io.scan_backup_payload(payload)
+        except Exception as exc:
+            self._log_error("backup import scan failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            return
+
+        lang_count = scan["language_count"]
+        topic_count = scan["topic_count"]
+        card_count = scan["card_count"]
+        lines = [
+            f"Gefunden: {lang_count} Sprachen, {topic_count} Kategorien, {card_count} Vokabeln.",
+        ]
+        if scan["languages"]:
+            lines.append("Sprachen: " + ", ".join(scan["languages"]))
+        if source_label:
+            lines.append(f"Datei: {source_label}")
+        text = "\n".join(lines)
+
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(text))
+
+        def do_import(_):
+            popup.dismiss()
+            self._import_backup_confirmed(payload, scan)
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Überschreiben", on_release=do_import))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.6))
+        popup.open()
+
+    def _import_backup_confirmed(self, payload: dict, scan: dict) -> None:
+        self._flush_state()
+        rollback_payload = self._build_backup_payload()
+        rollback_path = None
+        try:
+            rollback_filename = f"rollback_{datetime.now().strftime('%Y%m%d_%H%M%S')}{backup_io.BACKUP_EXT}"
+            rollback_path = os.path.join(self.backup_dir, rollback_filename)
+            backup_io.persist_payload_to_file(rollback_path, rollback_payload)
+        except Exception as exc:
+            self._log_error("rollback backup failed", exc)
+
+        try:
+            self._persist_payload(payload)
+            self._apply_payload_to_state(payload)
+            msg = (
+                "Import erfolgreich.\n"
+                f"Sprachen: {scan['language_count']}, Kategorien: {scan['topic_count']}, "
+                f"Vokabeln: {scan['card_count']}."
+            )
+            _styled_popup(title="Datenbank Import", content=Label(text=msg), size_hint=(0.8, 0.4)).open()
         except Exception as exc:
             self._log_error("backup import failed", exc)
-            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            self._offer_import_rollback(exc, rollback_path)
+
+    def _persist_payload(self, payload: dict) -> None:
+        backup_io.persist_payload_to_files(
+            payload,
+            vocab_path=self.vocab_path,
+            progress_path=self.progress_path,
+            training_log_path=self.log_path,
+            exam_log_path=self.exam_log_path,
+        )
+
+    def _apply_payload_to_state(self, payload: dict) -> None:
+        self.vocab = payload.get("vocab", {})
+        self.progress = payload.get("progress", {})
+        self.training_log = payload.get("training_log", [])
+        self.exam_log = payload.get("exam_log", [])
+
+    def _offer_import_rollback(self, exc: Exception, rollback_path: str | None) -> None:
+        lines = [f"Import-Fehler: {exc}"]
+        if rollback_path:
+            lines.append("Rollback ist verfügbar.")
+        text = "\n".join(lines)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(text))
+
+        def do_rollback(_):
+            popup.dismiss()
+            if rollback_path:
+                self._run_rollback(rollback_path)
+            else:
+                _styled_popup(title="Rollback", content=Label(text="Kein Rollback verfügbar."), size_hint=(0.7, 0.3)).open()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        if rollback_path:
+            btn_row.add_widget(Button(text="Rollback", on_release=do_rollback))
+        btn_row.add_widget(Button(text="Schließen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.6))
+        popup.open()
+
+    def _run_rollback(self, rollback_path: str) -> None:
+        try:
+            payload = backup_io.load_payload_from_path(rollback_path)
+            payload = backup_io.normalize_backup_payload(payload)
+            self._persist_payload(payload)
+            self._apply_payload_to_state(payload)
+            _styled_popup(title="Rollback", content=Label(text="Rollback erfolgreich."), size_hint=(0.7, 0.3)).open()
+        except Exception as exc:
+            self._log_error("rollback failed", exc)
+            _styled_popup(title="Rollback", content=Label(text=f"Rollback-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
 
     def _import_backup_android(self) -> None:
         try:
@@ -1748,7 +1870,7 @@ class JonMemApp(App):
             intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             intent.setType("*/*")
-            mime_types = ["application/x-yaml", "text/yaml", "application/yaml", "text/plain"]
+            mime_types = ["application/octet-stream", "application/x-yaml", "text/yaml", "application/yaml", "text/plain"]
             intent.putExtra(Intent.EXTRA_MIME_TYPES, mime_types)
             self._android_import_pending = True
             self._android_start_activity(intent, ANDROID_IMPORT_REQUEST)
@@ -1757,13 +1879,12 @@ class JonMemApp(App):
             _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
 
     def _build_backup_payload(self) -> dict:
-        return {
-            "meta": {"created": datetime.now().isoformat(timespec="seconds")},
-            "vocab": self.vocab,
-            "progress": self.progress,
-            "training_log": self.training_log,
-            "exam_log": self.exam_log,
-        }
+        return backup_io.build_backup_payload(
+            self.vocab,
+            self.progress,
+            self.training_log,
+            self.exam_log,
+        )
 
     def _apply_import_data(self, data: dict) -> None:
         if "vocab" in data:
