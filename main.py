@@ -83,6 +83,7 @@ SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 BASE_INPUT_HEIGHT = 72
 BASE_BUTTON_HEIGHT = 64
 BASE_INPUT_FONT_SIZE = 26
+BASE_PROMPT_FONT_SIZE = 44
 BASE_BUTTON_FONT_SIZE = 26
 BASE_SPINNER_FONT_SIZE = 26
 BASE_LABEL_FONT_SIZE = 24
@@ -97,6 +98,32 @@ INPUT_BG = (1, 1, 1, 1)
 BUTTON_BG = (0.86, 0.83, 0.78, 1)
 BASE_CARD_HEIGHT = 68
 BASE_CALENDAR_CELL_HEIGHT = 70
+
+LICENSE_TEXT = """Copyright (C) 2025 Arnd Brandes.
+Dieses Programm kann durch jedermann gemäß den Bestimmungen der Deutschen Freien Software Lizenz genutzt werden.
+
+DEUTSCHE FREIE SOFTWARE LIZENZ (DFSL)
+
+Präambel:
+Diese Lizenz erlaubt es Ihnen, die Software frei zu nutzen, zu studieren, zu verändern und weiterzugeben, solange die Freiheit der Software erhalten bleibt.
+
+1. Nutzungsrecht:
+- Jeder darf die Software für beliebige Zwecke verwenden, ohne Einschränkung.
+
+2. Verbreitung:
+- Die Software darf in unveränderter oder modifizierter Form weitergegeben werden.
+- Der Lizenztext muss mitgeliefert werden.
+- Änderungen müssen gekennzeichnet und unter derselben Lizenz veröffentlicht werden.
+
+3. Gewährleistungsausschluss:
+- Diese Software wird ohne Garantie bereitgestellt.
+- Der Autor übernimmt keine Haftung für Schäden, die durch die Nutzung der Software entstehen.
+
+4. Freiheitserhalt:
+- Diese Lizenz darf nicht durch andere Lizenzen ersetzt werden, die die Freiheit der Software einschränken.
+
+Weitere Details finden Sie unter https://dfsl.de
+"""
 
 try:
     from plyer import filechooser  # type: ignore
@@ -278,6 +305,33 @@ def _ensure_yaml_extension(path: str) -> str:
     if path.lower().endswith((".yaml", ".yml")):
         return path
     return f"{path}.yaml"
+
+
+def _ensure_txt_extension(path: str) -> str:
+    if _is_content_uri(path):
+        return path
+    if path.lower().endswith(".txt"):
+        return path
+    return f"{path}.txt"
+
+
+def _default_download_dir() -> str:
+    if IS_ANDROID:
+        candidates = []
+        env_base = os.environ.get("EXTERNAL_STORAGE")
+        if env_base:
+            candidates.append(env_base)
+        candidates.append("/storage/emulated/0")
+        for base in candidates:
+            if not base:
+                continue
+            download = os.path.join(base, "Download")
+            if os.path.isdir(download):
+                return download
+    downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+    if os.path.isdir(downloads):
+        return downloads
+    return os.path.expanduser("~")
 
 
 def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None:
@@ -541,7 +595,18 @@ class TrainingScreen(Screen):
             self._card_bg = RoundedRectangle(radius=[12], pos=self.card_box.pos, size=self.card_box.size)
         self.card_box.bind(pos=self._update_card_bg, size=self._update_card_bg)
 
-        self.prompt_label = _styled_label("")
+        self.prompt_label = Label(
+            text="",
+            font_size=_ui(BASE_PROMPT_FONT_SIZE),
+            color=TEXT_COLOR,
+            halign="center",
+            valign="middle",
+        )
+        if APP_FONT_NAME:
+            self.prompt_label.font_name = APP_FONT_NAME
+        self.prompt_label.size_hint_y = None
+        self.prompt_label.height = _ui(120)
+        self.prompt_label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.card_box.add_widget(self.prompt_label)
 
         info_row = BoxLayout(orientation="horizontal", spacing=_ui(8), size_hint_y=None)
@@ -575,9 +640,16 @@ class TrainingScreen(Screen):
         self.answer_input.text = ""
         self.feedback_label.text = ""
         self.app.update_training_view()
+        self.focus_answer()
 
     def submit(self) -> None:
         self.app.submit_answer(self.answer_input.text)
+
+    def focus_answer(self) -> None:
+        def _apply(_dt):
+            self.answer_input.focus = True
+            self.answer_input.cursor = (len(self.answer_input.text or ""), 0)
+        Clock.schedule_once(_apply, 0)
 
 
 class VocabScreen(Screen):
@@ -907,6 +979,7 @@ class JonMemApp(App):
         self.progress_path = os.path.join(self.data_dir, "progress.json")
         self.log_path = os.path.join(self.data_dir, "training_log.json")
         self.exam_log_path = os.path.join(self.data_dir, "exam_log.json")
+        self.last_session_log_path = os.path.join(self.data_dir, "last_session_log.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
         self.almost_beep_path = os.path.join(self.data_dir, "almost.wav")
@@ -919,6 +992,7 @@ class JonMemApp(App):
         self.progress = _load_json(self.progress_path, {})
         self.training_log = _load_json(self.log_path, [])
         self.exam_log = _load_json(self.exam_log_path, [])
+        self.last_session_log = _load_json(self.last_session_log_path, {})
         self.settings = _load_json(self.settings_path, {
             "review_topics_by_lang": {},
             "review_topic_filter_enabled": {},
@@ -956,6 +1030,8 @@ class JonMemApp(App):
         self._second_chance_item_id = None
         self._pending_new_card = None
         self._intro_queue = []
+        self._session_log_meta = {}
+        self._session_log_entries = []
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -1299,10 +1375,7 @@ class JonMemApp(App):
         popup.open()
 
     def _show_license(self) -> None:
-        try:
-            text = _read_text(os.path.join(os.path.dirname(__file__), "License.txt"))
-        except Exception as exc:
-            text = f"License not available: {exc}"
+        text = LICENSE_TEXT
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
         box.add_widget(_styled_text_input(text=text, readonly=True))
         box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
@@ -1577,12 +1650,100 @@ class JonMemApp(App):
             lines.extend(self._error_log)
         if self._last_exception:
             lines.append("\nLast exception:\n" + self._last_exception)
+        session_text = self._format_session_log_text(self.last_session_log)
+        lines.append("\nLetzte Session:\n" + session_text)
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
         box.add_widget(_styled_text_input(text="\n".join(lines), readonly=True))
-        box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
-                              on_release=lambda *_: popup.dismiss()))
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Speichern unter...", on_release=lambda *_: self._save_last_session_log_prompt()))
+        btn_row.add_widget(Button(text="Schließen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
         popup = _styled_popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
         popup.open()
+
+    def _format_session_log_text(self, log: dict) -> str:
+        if not log:
+            return "Keine Session protokolliert."
+        meta = log.get("meta", {})
+        items = log.get("items", [])
+        lines = []
+        started = meta.get("started", "")
+        ended = meta.get("ended", "")
+        mode = meta.get("mode", "")
+        direction = meta.get("direction", "")
+        lang = meta.get("lang", "")
+        topic_name = meta.get("topic_name", "")
+        total = meta.get("total", 0)
+        correct = meta.get("correct", 0)
+        cancelled = meta.get("cancelled", False)
+        lines.append(f"Gestartet: {started}")
+        lines.append(f"Beendet: {ended}")
+        lines.append(f"Modus: {mode}")
+        lines.append(f"Richtung: {direction}")
+        lines.append(f"Sprache: {lang}")
+        if topic_name:
+            lines.append(f"Kategorie: {topic_name}")
+        lines.append(f"Ergebnis: {correct}/{total}")
+        lines.append(f"Abgebrochen: {bool(cancelled)}")
+        lines.append("")
+        for entry in items:
+            idx = entry.get("index", "")
+            prompt = entry.get("prompt", "")
+            expected = entry.get("expected", "")
+            given = entry.get("given", "")
+            ok = "ok" if entry.get("correct") else "falsch"
+            stage_before = entry.get("stage_before", "")
+            stage_after = entry.get("stage_after", "")
+            attempt = entry.get("attempt", 1)
+            lines.append(f"{idx}. {prompt}")
+            lines.append(f"   Eingabe: {given} | Lösung: {expected} | {ok} | Versuch: {attempt}")
+            lines.append(f"   Stufe: {stage_before} -> {stage_after}")
+        return "\n".join(lines).strip()
+
+    def _save_last_session_log_prompt(self) -> None:
+        if not self.last_session_log:
+            _styled_popup(title="Debug report", content=Label(text="Kein Session-Protokoll vorhanden."),
+                          size_hint=(0.7, 0.3)).open()
+            return
+        default_dir = _default_download_dir()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"jonmem_session_{timestamp}.txt"
+        default_path = os.path.join(default_dir, default_name)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Pfad für Session-Protokoll"))
+        path_input = _styled_text_input(multiline=False, text=default_path)
+        box.add_widget(path_input)
+
+        def _save(_):
+            popup.dismiss()
+            self._save_last_session_log_to(path_input.text.strip())
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Speichern", on_release=_save))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Session-Protokoll speichern", content=_make_scrollable(box), size_hint=(0.9, 0.5))
+        popup.open()
+
+    def _save_last_session_log_to(self, path: str) -> None:
+        text = self._format_session_log_text(self.last_session_log)
+        try:
+            path = _normalize_path(path.strip())
+            path = _ensure_txt_extension(path)
+            if _is_content_uri(path):
+                _android_write_uri(path, text.encode("utf-8"))
+            else:
+                dir_path = os.path.dirname(path)
+                if dir_path:
+                    os.makedirs(dir_path, exist_ok=True)
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+            _styled_popup(title="Session-Protokoll", content=Label(text=f"Gespeichert:\n{path}"),
+                          size_hint=(0.9, 0.4)).open()
+        except Exception as exc:
+            self._log_error("session log save failed", exc)
+            _styled_popup(title="Session-Protokoll", content=Label(text=f"Fehler: {exc}"),
+                          size_hint=(0.9, 0.4)).open()
 
     def _check_notification(self) -> None:
         if notification is None:
@@ -1701,6 +1862,8 @@ class JonMemApp(App):
             rng.shuffle(unseen_cards)
             unique_limit = max(1, SESSION_MAX_ITEMS // max(1, INTRODUCE_REPEAT_COUNT))
             unseen_items = [self._card_to_item(card) for card in unseen_cards[:unique_limit]]
+            for item in unseen_items:
+                item["intro_new"] = True
             if len(unseen_items) < unique_limit:
                 needed = unique_limit - len(unseen_items)
                 review_fill = training.build_session_items(
@@ -1725,7 +1888,8 @@ class JonMemApp(App):
                               size_hint=(0.6, 0.3)).open()
                 return
             session = unique_items * max(1, INTRODUCE_REPEAT_COUNT)
-            self.session_items = training.shuffle_avoid_adjacent(session, "id", random)[:SESSION_MAX_ITEMS]
+            session = training.shuffle_avoid_adjacent(session, "id", random)
+            self.session_items = self._defer_intro_items(session)[:SESSION_MAX_ITEMS]
             self._intro_queue = list(unseen_items)
         elif mode == "exam":
             if not intro_topic_id:
@@ -1758,6 +1922,21 @@ class JonMemApp(App):
         else:
             self.time_left = SESSION_SECONDS
         self.session_start = datetime.now()
+        self._session_log_entries = []
+        self._session_log_meta = {
+            "started": self.session_start.isoformat(timespec="seconds"),
+            "mode": self.session_mode,
+            "direction": self.session_direction,
+            "lang": self.session_lang,
+            "items_planned": len(self.session_items),
+        }
+        topic_name = ""
+        if self.session_mode == "introduce" and self.session_intro_topic:
+            topic_name = self.get_topic_name(self.session_intro_topic, self.session_lang)
+        if self.session_mode == "exam" and self.exam_category_id:
+            topic_name = self.get_topic_name(self.exam_category_id, self.session_lang)
+        if topic_name:
+            self._session_log_meta["topic_name"] = topic_name
         self._second_chance_active = False
         self._second_chance_item_id = None
         self._pending_new_card = None
@@ -1784,6 +1963,18 @@ class JonMemApp(App):
             max_stage=MAX_STAGE,
             pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
         )
+
+    def _defer_intro_items(self, items: list[dict]) -> list[dict]:
+        if self.session_mode != "introduce":
+            return items
+        deferred = []
+        remaining = []
+        for item in items:
+            if item.get("intro_new") and int(item.get("stage", 1) or 1) == 1:
+                deferred.append(item)
+            else:
+                remaining.append(item)
+        return remaining + deferred
 
     def _card_to_item(self, card: dict, prog: dict | None = None) -> dict:
         stage = 1
@@ -1825,6 +2016,7 @@ class JonMemApp(App):
         if not unseen_cards:
             return
         new_item = self._card_to_item(unseen_cards[0])
+        new_item["intro_new"] = True
         self.session_items.append(new_item)
         self._pending_new_card = new_item
 
@@ -1859,6 +2051,7 @@ class JonMemApp(App):
             self.screen_train.level_label.text = "Level 1"
             self.screen_train._card_color.rgba = CARD_BG
         self.screen_train.pyramid_button.disabled = (self.session_mode == "exam")
+        self.screen_train.focus_answer()
 
     def submit_answer(self, text: str) -> None:
         if self.session_index >= len(self.session_items):
@@ -1867,6 +2060,7 @@ class JonMemApp(App):
         expected = item.get("answer", "")
         if self.session_mode == "exam":
             correct = training.strict_match(text, expected)
+            stage_before = int(item.get("stage", 1) or 1)
             self.exam_total += 1
             if correct:
                 self.exam_correct += 1
@@ -1876,6 +2070,7 @@ class JonMemApp(App):
                     "given": text,
                     "correct": expected,
                 })
+            self._record_session_answer(item, text, correct, stage_before, stage_before, 1)
             if self._timer_event is not None:
                 self._timer_event.cancel()
                 self._timer_event = None
@@ -1893,11 +2088,13 @@ class JonMemApp(App):
                     self._sound_success.play()
                 prev_stage, new_stage = self._update_progress(item["id"], True)
                 self._sync_session_item_stage(item["id"], new_stage)
+                self._record_session_answer(item, text, True, prev_stage, new_stage, 2)
                 if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                     self._queue_new_intro_card()
             else:
-                _, new_stage = self._update_progress(item["id"], False)
+                prev_stage, new_stage = self._update_progress(item["id"], False)
                 self._sync_session_item_stage(item["id"], new_stage)
+                self._record_session_answer(item, text, False, prev_stage, new_stage, 2)
 
             # Pause timer while showing feedback
             if self._timer_event is not None:
@@ -1916,6 +2113,7 @@ class JonMemApp(App):
                 self._sound_success.play()
             prev_stage, new_stage = self._update_progress(item["id"], True)
             self._sync_session_item_stage(item["id"], new_stage)
+            self._record_session_answer(item, text, True, prev_stage, new_stage, 1)
             if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                 self._queue_new_intro_card()
 
@@ -1943,8 +2141,9 @@ class JonMemApp(App):
             self._show_second_chance_popup(hint_lines)
             return
 
-        _, new_stage = self._update_progress(item["id"], False)
+        prev_stage, new_stage = self._update_progress(item["id"], False)
         self._sync_session_item_stage(item["id"], new_stage)
+        self._record_session_answer(item, text, False, prev_stage, new_stage, 1)
 
         # Pause timer while showing feedback
         if self._timer_event is not None:
@@ -2141,11 +2340,42 @@ class JonMemApp(App):
             if entry.get("id") == card_id:
                 entry["stage"] = new_stage
 
+    def _record_session_answer(self, item: dict, given: str, correct: bool,
+                               stage_before: int, stage_after: int, attempt: int) -> None:
+        entry = {
+            "index": self.session_index + 1,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "item_id": item.get("id"),
+            "prompt": item.get("prompt", ""),
+            "expected": item.get("answer", ""),
+            "given": given,
+            "correct": bool(correct),
+            "stage_before": int(stage_before),
+            "stage_after": int(stage_after),
+            "attempt": int(attempt),
+        }
+        self._session_log_entries.append(entry)
+
+    def _finalize_session_log(self, cancelled: bool) -> None:
+        if not self._session_log_meta:
+            return
+        meta = dict(self._session_log_meta)
+        meta["ended"] = datetime.now().isoformat(timespec="seconds")
+        meta["cancelled"] = bool(cancelled)
+        meta["total"] = len(self.session_items)
+        meta["correct"] = self.session_correct
+        self.last_session_log = {
+            "meta": meta,
+            "items": list(self._session_log_entries),
+        }
+        _save_json(self.last_session_log_path, self.last_session_log)
+
     def end_training(self, cancelled: bool) -> None:
         if self._timer_event is not None:
             self._timer_event.cancel()
             self._timer_event = None
         if cancelled:
+            self._finalize_session_log(cancelled=True)
             self.sm.current = "menu"
             return
         if self.session_mode == "introduce" and self.time_left <= 0:
@@ -2180,6 +2410,7 @@ class JonMemApp(App):
             self._finish_exam()
         else:
             _styled_popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
+        self._finalize_session_log(cancelled=False)
         self.sm.current = "menu"
 
     def show_session_pyramid(self) -> None:
