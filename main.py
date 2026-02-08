@@ -51,7 +51,7 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.1"
+__version__ = "0.3"
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
@@ -71,6 +71,8 @@ PYRAMID_STAGE_WEIGHTS = {
 }
 
 MENU_ICON = "\u2261"
+ARROW_LEFT_ICON = "\u25C0"
+ARROW_RIGHT_ICON = "\u25B6"
 STAR_ICON = "\u2605"
 MOON_ICON = "\u263E"
 FONT_PATH = os.path.join(os.path.dirname(__file__), "data", "fonts", "DejaVuSans.ttf")
@@ -780,8 +782,23 @@ class CalendarScreen(Screen):
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Kalender"))
         self.body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(8))
-        self.month_label = _styled_label("")
-        self.body.add_widget(self.month_label)
+        self.current_month = None
+        month_header = BoxLayout(orientation="horizontal", size_hint_y=None,
+                                 height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        prev_btn = Button(text=ARROW_LEFT_ICON, size_hint_x=None, width=_ui(60))
+        next_btn = Button(text=ARROW_RIGHT_ICON, size_hint_x=None, width=_ui(60))
+        prev_btn.bind(on_release=lambda *_: self._shift_month(-1))
+        next_btn.bind(on_release=lambda *_: self._shift_month(1))
+        self.month_label = Label(text="", font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR)
+        if APP_FONT_NAME:
+            self.month_label.font_name = APP_FONT_NAME
+        self.month_label.halign = "center"
+        self.month_label.valign = "middle"
+        self.month_label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
+        month_header.add_widget(prev_btn)
+        month_header.add_widget(self.month_label)
+        month_header.add_widget(next_btn)
+        self.body.add_widget(month_header)
         self.header_grid = GridLayout(cols=7, spacing=_ui(4), size_hint_y=None, height=_ui(24))
         self.grid = GridLayout(cols=7, spacing=4, size_hint_y=None, row_force_default=True,
                                row_default_height=_ui(BASE_CALENDAR_CELL_HEIGHT))
@@ -802,14 +819,17 @@ class CalendarScreen(Screen):
         self.add_widget(layout)
 
     def on_pre_enter(self, *args):
+        if self.current_month is None:
+            now = datetime.now()
+            self.current_month = datetime(now.year, now.month, 1)
         self._build_month()
 
     def _build_month(self):
         self.grid.clear_widgets()
         self.header_grid.clear_widgets()
         self.exam_list.clear_widgets()
-        now = datetime.now()
-        self.month_label.text = now.strftime("%B %Y")
+        month = self.current_month or datetime.now()
+        self.month_label.text = month.strftime("%B %Y")
         counts = self.app.training_counts_by_day()
 
         weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -817,8 +837,8 @@ class CalendarScreen(Screen):
             self.header_grid.add_widget(Label(text=wd, bold=True, font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR))
 
         cal = calendar.Calendar(firstweekday=0)
-        for day in cal.itermonthdates(now.year, now.month):
-            if day.month != now.month:
+        for day in cal.itermonthdates(month.year, month.month):
+            if day.month != month.month:
                 self.grid.add_widget(CalendarCell("", ""))
                 continue
             key = day.isoformat()
@@ -832,7 +852,7 @@ class CalendarScreen(Screen):
                 parts.append(f"{STAR_ICON}{review_count}")
             count_text = " ".join(parts)
             self.grid.add_widget(CalendarCell(str(day.day), count_text))
-        exams = self.app.get_exam_results_for_month(now.year, now.month)
+        exams = self.app.get_exam_results_for_month(month.year, month.month)
         if not exams:
             self.exam_list.add_widget(_styled_label("Keine Prüfungen in diesem Monat."))
         else:
@@ -841,6 +861,19 @@ class CalendarScreen(Screen):
                 btn = Button(text=label, size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                              on_release=lambda _btn, e=entry: self.app.show_exam_result_popup(e))
                 self.exam_list.add_widget(btn)
+
+    def _shift_month(self, delta: int) -> None:
+        base = self.current_month or datetime.now()
+        year = base.year
+        month = base.month + delta
+        if month < 1:
+            month = 12
+            year -= 1
+        elif month > 12:
+            month = 1
+            year += 1
+        self.current_month = datetime(year, month, 1)
+        self._build_month()
 
 
 class JonMemApp(App):
@@ -1859,10 +1892,12 @@ class JonMemApp(App):
                 if self._sound_success is not None:
                     self._sound_success.play()
                 prev_stage, new_stage = self._update_progress(item["id"], True)
+                self._sync_session_item_stage(item["id"], new_stage)
                 if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                     self._queue_new_intro_card()
             else:
-                self._update_progress(item["id"], False)
+                _, new_stage = self._update_progress(item["id"], False)
+                self._sync_session_item_stage(item["id"], new_stage)
 
             # Pause timer while showing feedback
             if self._timer_event is not None:
@@ -1880,6 +1915,7 @@ class JonMemApp(App):
             if self._sound_success is not None:
                 self._sound_success.play()
             prev_stage, new_stage = self._update_progress(item["id"], True)
+            self._sync_session_item_stage(item["id"], new_stage)
             if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                 self._queue_new_intro_card()
 
@@ -1907,7 +1943,8 @@ class JonMemApp(App):
             self._show_second_chance_popup(hint_lines)
             return
 
-        self._update_progress(item["id"], False)
+        _, new_stage = self._update_progress(item["id"], False)
+        self._sync_session_item_stage(item["id"], new_stage)
 
         # Pause timer while showing feedback
         if self._timer_event is not None:
@@ -2098,6 +2135,11 @@ class JonMemApp(App):
         dir_entry["last_result"] = bool(correct)
         _save_json(self.progress_path, self.progress)
         return stage, new_stage
+
+    def _sync_session_item_stage(self, card_id: str, new_stage: int) -> None:
+        for entry in self.session_items:
+            if entry.get("id") == card_id:
+                entry["stage"] = new_stage
 
     def end_training(self, cancelled: bool) -> None:
         if self._timer_event is not None:
