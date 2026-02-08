@@ -51,12 +51,14 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
 ANDROID_EXPORT_REQUEST = 41001
 ANDROID_IMPORT_REQUEST = 41002
+NOTIFICATION_PERMISSION_REQUEST = 1001
+NOTIFICATION_CHANNEL_ID = "trainer"
 
 SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.yaml")
 
@@ -371,7 +373,7 @@ def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None
 def _android_read_uri(uri: str) -> bytes:
     if not IS_ANDROID:
         raise RuntimeError("android uri read not available")
-    from jnius import autoclass, jarray  # type: ignore
+    from jnius import autoclass  # type: ignore
     Uri = autoclass("android.net.Uri")
     activity = autoclass("org.kivy.android.PythonActivity").mActivity
     resolver = activity.getContentResolver()
@@ -380,14 +382,22 @@ def _android_read_uri(uri: str) -> bytes:
     if stream is None:
         raise RuntimeError("unable to open input stream")
     ByteArrayOutputStream = autoclass("java.io.ByteArrayOutputStream")
-    buffer = jarray("b")(4096)
     baos = ByteArrayOutputStream()
     try:
-        while True:
-            count = stream.read(buffer)
-            if count == -1:
-                break
-            baos.write(buffer, 0, count)
+        try:
+            from jnius import jarray  # type: ignore
+            buffer = jarray("b")(4096)
+            while True:
+                count = stream.read(buffer)
+                if count == -1:
+                    break
+                baos.write(buffer, 0, count)
+        except Exception:
+            while True:
+                byte_val = stream.read()
+                if byte_val == -1:
+                    break
+                baos.write(byte_val)
     finally:
         stream.close()
     data = baos.toByteArray()
@@ -397,7 +407,7 @@ def _android_read_uri(uri: str) -> bytes:
 def _android_write_uri(uri: str, data: bytes) -> None:
     if not IS_ANDROID:
         raise RuntimeError("android uri write not available")
-    from jnius import autoclass, jarray  # type: ignore
+    from jnius import autoclass  # type: ignore
     Uri = autoclass("android.net.Uri")
     activity = autoclass("org.kivy.android.PythonActivity").mActivity
     resolver = activity.getContentResolver()
@@ -406,7 +416,15 @@ def _android_write_uri(uri: str, data: bytes) -> None:
     if stream is None:
         raise RuntimeError("unable to open output stream")
     try:
-        stream.write(jarray("b")(data))
+        try:
+            from jnius import jarray  # type: ignore
+            stream.write(jarray("b")(data))
+        except Exception:
+            try:
+                stream.write(data)
+            except Exception:
+                for byte_val in data:
+                    stream.write(byte_val)
         stream.flush()
     finally:
         stream.close()
@@ -1064,6 +1082,11 @@ class JonMemApp(App):
         self.sm.current = "menu"
         return self.sm
 
+    def on_start(self):
+        if IS_ANDROID:
+            self._ensure_notification_permission()
+            self._ensure_notification_channel()
+
     def _on_window_focus(self, _window, focused: bool) -> None:
         if focused:
             Clock.schedule_once(self._force_redraw, 0)
@@ -1073,6 +1096,39 @@ class JonMemApp(App):
             Window.canvas.ask_update()
         except Exception:
             pass
+
+    def _ensure_notification_permission(self) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            Permission = autoclass("android.Manifest$permission")
+            PackageManager = autoclass("android.content.pm.PackageManager")
+            perm = Permission.POST_NOTIFICATIONS
+            if activity.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED:
+                activity.requestPermissions([perm], NOTIFICATION_PERMISSION_REQUEST)
+        except Exception as exc:
+            self._log_error("notification permission failed", exc)
+
+    def _ensure_notification_channel(self) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            NotificationChannel = autoclass("android.app.NotificationChannel")
+            NotificationManager = autoclass("android.app.NotificationManager")
+            Context = autoclass("android.content.Context")
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Trainer Notifications",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+            nm.createNotificationChannel(channel)
+        except Exception as exc:
+            self._log_error("notification channel failed", exc)
 
     def on_resume(self):
         self._force_redraw()
@@ -1113,10 +1169,10 @@ class JonMemApp(App):
 
     def _on_android_activity_result(self, request_code, result_code, data) -> None:
         if request_code == ANDROID_EXPORT_REQUEST:
-            self._handle_android_export_result(result_code, data)
+            Clock.schedule_once(lambda *_: self._handle_android_export_result(result_code, data), 0)
             return
         if request_code == ANDROID_IMPORT_REQUEST:
-            self._handle_android_import_result(result_code, data)
+            Clock.schedule_once(lambda *_: self._handle_android_import_result(result_code, data), 0)
             return
 
     def _handle_android_export_result(self, result_code, data) -> None:
@@ -1480,6 +1536,19 @@ class JonMemApp(App):
         if card.get("mnemonic", "") == cleaned:
             return
         card["mnemonic"] = cleaned
+        self._save_vocab()
+
+    def _save_card_hint(self, card_id: str | None, direction: str, text: str) -> None:
+        if not card_id:
+            return
+        card = self._get_card_by_id(card_id)
+        if not card:
+            return
+        key = training.hint_key(direction)
+        cleaned = (text or "").strip()
+        if (card.get(key, "") or "").strip() == cleaned:
+            return
+        card[key] = cleaned
         self._save_vocab()
 
     def show_training_setup(self) -> None:
@@ -2344,35 +2413,47 @@ class JonMemApp(App):
         en_text = item.get("en", "")
         hint_de = item.get("hint_de_to_en", "")
         hint_en = item.get("hint_en_to_de", "")
-        mnemonic_text = item.get("mnemonic", "")
-        if not mnemonic_text:
+        direction = self.session_direction or "de_to_en"
+        hint_key = training.hint_key(direction)
+        current_hint = item.get(hint_key, "")
+        if not current_hint:
             card = self._get_card_by_id(item.get("id"))
             if card:
-                mnemonic_text = card.get("mnemonic", "")
+                current_hint = card.get(hint_key, "")
 
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
-        layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
+        layout.add_widget(_styled_label(
+            f"[color={color}]{status}[/color]",
+            markup=True,
+            font_size=_ui(BASE_LABEL_FONT_SIZE + 4),
+            halign="left",
+        ))
         if not correct and given_text:
             safe_given = escape_markup(given_text)
-            layout.add_widget(Label(text=f"Deine Eingabe: [s]{safe_given}[/s]",
-                                    markup=True, size_hint_y=None, height=_ui(26)))
-        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+            layout.add_widget(_styled_label(
+                f"Deine Eingabe: [s]{safe_given}[/s]",
+                markup=True,
+                halign="left",
+            ))
+        layout.add_widget(_styled_label(f"Deutsch: {de_text}", halign="left"))
         lang = (self.session_lang or "en").upper()
-        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
-        layout.add_widget(Label(text="Eselsbrücke/Notiz (optional)"))
-        mnemonic_input = _styled_text_input(text=mnemonic_text, multiline=True, size_hint_y=None, height=_ui(110))
-        layout.add_widget(mnemonic_input)
+        layout.add_widget(_styled_label(f"Zielsprache ({lang}): {en_text}", halign="left"))
+        layout.add_widget(_styled_label("Eselsbrücke (für diese Richtung)", halign="left"))
+        hint_input = _styled_text_input(text=current_hint, multiline=True, size_hint_y=None, height=_ui(110))
+        layout.add_widget(hint_input)
         if hint_de:
-            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+            layout.add_widget(_styled_label(f"Eselsbrücke DE → ZS: {hint_de}", halign="left"))
         if hint_en:
-            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+            layout.add_widget(_styled_label(f"Eselsbrücke ZS → DE: {hint_en}", halign="left"))
 
-        def _store_mnemonic():
-            self._save_card_mnemonic(item.get("id"), mnemonic_input.text)
-            item["mnemonic"] = (mnemonic_input.text or "").strip()
+        def _store_hint():
+            cleaned = (hint_input.text or "").strip()
+            self._save_card_hint(item.get("id"), direction, cleaned)
+            item[hint_key] = cleaned
+            item["hint"] = cleaned
 
         def _next(_):
-            _store_mnemonic()
+            _store_hint()
             popup.dismiss()
             self.session_index += 1
             if self.session_index >= len(self.session_items):
@@ -2389,12 +2470,12 @@ class JonMemApp(App):
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
         scroll = _make_scrollable(layout)
         popup = _styled_popup(title="Lösung", content=scroll, size_hint=(0.92, 0.85))
-        popup.bind(on_dismiss=lambda *_: _store_mnemonic())
-        mnemonic_input.bind(
-            focus=lambda _inp, focused: Clock.schedule_once(lambda *_: _scroll_to_widget(mnemonic_input), 0.05)
+        popup.bind(on_dismiss=lambda *_: _store_hint())
+        hint_input.bind(
+            focus=lambda _inp, focused: Clock.schedule_once(lambda *_: _scroll_to_widget(hint_input), 0.05)
             if focused else None
         )
-        popup.bind(on_open=lambda *_: Clock.schedule_once(lambda *_: _scroll_to_widget(mnemonic_input), 0.05))
+        popup.bind(on_open=lambda *_: Clock.schedule_once(lambda *_: _scroll_to_widget(hint_input), 0.05))
         popup.open()
 
     def _show_second_chance_popup(self, hint_lines: list[str]) -> None:

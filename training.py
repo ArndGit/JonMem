@@ -276,3 +276,15 @@ def build_session_items(
     rng.shuffle(items)
     return items[:max_items]
 
+
+def hint_key(direction: str) -> str:
+    return "hint_de_to_en" if direction == "de_to_en" else "hint_en_to_de"
+
+
+def get_directional_hint(card: dict, direction: str) -> str:
+    return (card.get(hint_key(direction), "") or "").strip()
+
+
+def set_directional_hint(card: dict, direction: str, text: str) -> None:
+    card[hint_key(direction)] = (text or "").strip()
+
