@@ -53,7 +53,7 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.5"
+__version__ = "0.6"
 
 
 IS_ANDROID = (kivy_platform == "android")
@@ -160,18 +160,6 @@ def _scroll_to_widget(widget) -> None:
 
 
 class SmartTextInput(TextInput):
-    def insert_text(self, substring, from_undo=False):
-        if substring in ("\b", "\x08", "\x7f"):
-            self.do_backspace(from_undo=from_undo)
-            return
-        return super().insert_text(substring, from_undo=from_undo)
-
-    def keyboard_on_key_down(self, window, keycode, text, modifiers):
-        if keycode and keycode[1] == "backspace":
-            self.do_backspace()
-            return True
-        return super().keyboard_on_key_down(window, keycode, text, modifiers)
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if hasattr(self, "halign"):
@@ -622,6 +610,7 @@ class TrainingScreen(Screen):
     def __init__(self, app, **kwargs):
         super().__init__(**kwargs)
         self.app = app
+        self._last_focus_index = None
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Training"))
         body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(10))
@@ -685,10 +674,14 @@ class TrainingScreen(Screen):
     def submit(self) -> None:
         self.app.submit_answer(self.answer_input.text)
 
-    def focus_answer(self) -> None:
+    def focus_answer(self, *, force: bool = False) -> None:
         def _apply(_dt):
+            was_focused = bool(self.answer_input.focus)
+            if not force and was_focused:
+                return
             self.answer_input.focus = True
-            self.answer_input.cursor = (len(self.answer_input.text or ""), 0)
+            if force or not was_focused:
+                self.answer_input.cursor = (len(self.answer_input.text or ""), 0)
         Clock.schedule_once(_apply, 0)
 
 
@@ -1098,7 +1091,24 @@ class JonMemApp(App):
 
     def _on_window_focus(self, _window, focused: bool) -> None:
         if focused:
-            Clock.schedule_once(self._force_redraw, 0)
+            self._schedule_redraw(0.05)
+
+    def _schedule_redraw(self, delay: float = 0.1) -> None:
+        def _apply(_dt):
+            self._force_redraw()
+            try:
+                if self.root:
+                    self.root.do_layout()
+            except Exception:
+                pass
+            try:
+                if self.sm:
+                    current = self.sm.current
+                    if current:
+                        self.sm.current = current
+            except Exception:
+                pass
+        Clock.schedule_once(_apply, delay)
 
     def _force_redraw(self, *_):
         try:
@@ -1140,7 +1150,7 @@ class JonMemApp(App):
             self._log_error("notification channel failed", exc)
 
     def on_resume(self):
-        self._force_redraw()
+        self._schedule_redraw(0.1)
         return True
 
     def _flush_state(self) -> None:
@@ -2426,7 +2436,14 @@ class JonMemApp(App):
             self.screen_train.level_label.text = "Level 1"
             self.screen_train._card_color.rgba = CARD_BG
         self.screen_train.pyramid_button.disabled = (self.session_mode == "exam")
-        self.screen_train.focus_answer()
+        if self.session_index < len(self.session_items):
+            if self.screen_train._last_focus_index != self.session_index:
+                self.screen_train._last_focus_index = self.session_index
+                self.screen_train.focus_answer(force=True)
+            elif not self.screen_train.answer_input.focus:
+                self.screen_train.focus_answer()
+        else:
+            self.screen_train._last_focus_index = None
 
     def submit_answer(self, text: str) -> None:
         if self.session_index >= len(self.session_items):
