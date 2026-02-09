@@ -55,6 +55,7 @@ except Exception:
 
 __version__ = "0.5"
 
+
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
 ANDROID_EXPORT_REQUEST = 41001
