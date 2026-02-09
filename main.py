@@ -13,6 +13,8 @@ import traceback
 import wave
 from datetime import datetime, timedelta
 
+import backup_io
+
 # Ensure Kivy uses a writable home on Android before any Kivy import.
 if "ANDROID_PRIVATE" in os.environ:
     _kivy_home = os.path.join(os.environ["ANDROID_PRIVATE"], ".kivy")
@@ -51,10 +53,15 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.2"
+__version__ = "0.5"
+
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
+ANDROID_EXPORT_REQUEST = 41001
+ANDROID_IMPORT_REQUEST = 41002
+NOTIFICATION_PERMISSION_REQUEST = 1001
+NOTIFICATION_CHANNEL_ID = "trainer"
 
 SEED_VOCAB_PATH = os.path.join(os.path.dirname(__file__), "data", "seed_vocab.yaml")
 
@@ -71,6 +78,8 @@ PYRAMID_STAGE_WEIGHTS = {
 }
 
 MENU_ICON = "\u2261"
+ARROW_LEFT_ICON = "\u25C0"
+ARROW_RIGHT_ICON = "\u25B6"
 STAR_ICON = "\u2605"
 MOON_ICON = "\u263E"
 FONT_PATH = os.path.join(os.path.dirname(__file__), "data", "fonts", "DejaVuSans.ttf")
@@ -81,6 +90,7 @@ SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 BASE_INPUT_HEIGHT = 72
 BASE_BUTTON_HEIGHT = 64
 BASE_INPUT_FONT_SIZE = 26
+BASE_PROMPT_FONT_SIZE = 44
 BASE_BUTTON_FONT_SIZE = 26
 BASE_SPINNER_FONT_SIZE = 26
 BASE_LABEL_FONT_SIZE = 24
@@ -95,6 +105,32 @@ INPUT_BG = (1, 1, 1, 1)
 BUTTON_BG = (0.86, 0.83, 0.78, 1)
 BASE_CARD_HEIGHT = 68
 BASE_CALENDAR_CELL_HEIGHT = 70
+
+LICENSE_TEXT = """Copyright (C) 2026 Arnd Brandes.
+Dieses Programm kann durch jedermann gemäß den Bestimmungen der Deutschen Freien Software Lizenz genutzt werden.
+
+DEUTSCHE FREIE SOFTWARE LIZENZ (DFSL)
+
+Präambel:
+Diese Lizenz erlaubt es Ihnen, die Software frei zu nutzen, zu studieren, zu verändern und weiterzugeben, solange die Freiheit der Software erhalten bleibt.
+
+1. Nutzungsrecht:
+- Jeder darf die Software für beliebige Zwecke verwenden, ohne Einschränkung.
+
+2. Verbreitung:
+- Die Software darf in unveränderter oder modifizierter Form weitergegeben werden.
+- Der Lizenztext muss mitgeliefert werden.
+- Änderungen müssen gekennzeichnet und unter derselben Lizenz veröffentlicht werden.
+
+3. Gewährleistungsausschluss:
+- Diese Software wird ohne Garantie bereitgestellt.
+- Der Autor übernimmt keine Haftung für Schäden, die durch die Nutzung der Software entstehen.
+
+4. Freiheitserhalt:
+- Diese Lizenz darf nicht durch andere Lizenzen ersetzt werden, die die Freiheit der Software einschränken.
+
+Weitere Details finden Sie unter https://dfsl.de
+"""
 
 try:
     from plyer import filechooser  # type: ignore
@@ -129,6 +165,12 @@ class SmartTextInput(TextInput):
             self.do_backspace(from_undo=from_undo)
             return
         return super().insert_text(substring, from_undo=from_undo)
+
+    def keyboard_on_key_down(self, window, keycode, text, modifiers):
+        if keycode and keycode[1] == "backspace":
+            self.do_backspace()
+            return True
+        return super().keyboard_on_key_down(window, keycode, text, modifiers)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -205,6 +247,11 @@ def _read_text(path: str) -> str:
         return handle.read()
 
 
+def _read_bytes(path: str) -> bytes:
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
 def _load_yaml(path: str) -> dict:
     if yaml is None:
         raise RuntimeError("pyyaml not available")
@@ -278,6 +325,39 @@ def _ensure_yaml_extension(path: str) -> str:
     return f"{path}.yaml"
 
 
+def _ensure_backup_extension(path: str) -> str:
+    if _is_content_uri(path):
+        return path
+    return backup_io.ensure_backup_extension(path)
+
+
+def _ensure_txt_extension(path: str) -> str:
+    if _is_content_uri(path):
+        return path
+    if path.lower().endswith(".txt"):
+        return path
+    return f"{path}.txt"
+
+
+def _default_download_dir() -> str:
+    if IS_ANDROID:
+        candidates = []
+        env_base = os.environ.get("EXTERNAL_STORAGE")
+        if env_base:
+            candidates.append(env_base)
+        candidates.append("/storage/emulated/0")
+        for base in candidates:
+            if not base:
+                continue
+            download = os.path.join(base, "Download")
+            if os.path.isdir(download):
+                return download
+    downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+    if os.path.isdir(downloads):
+        return downloads
+    return os.path.expanduser("~")
+
+
 def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None:
     try:
         import tkinter  # type: ignore
@@ -291,8 +371,8 @@ def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None
             title=title,
             initialdir=initial_dir,
             initialfile=default_name,
-            defaultextension=".yaml",
-            filetypes=[("YAML", "*.yaml"), ("All files", "*.*")],
+            defaultextension=backup_io.BACKUP_EXT,
+            filetypes=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"), ("YAML", "*.yaml"), ("All files", "*.*")],
         )
     finally:
         root.destroy()
@@ -302,7 +382,7 @@ def _tk_save_file(title: str, initial_dir: str, default_name: str) -> str | None
 def _android_read_uri(uri: str) -> bytes:
     if not IS_ANDROID:
         raise RuntimeError("android uri read not available")
-    from jnius import autoclass, jarray  # type: ignore
+    from jnius import autoclass  # type: ignore
     Uri = autoclass("android.net.Uri")
     activity = autoclass("org.kivy.android.PythonActivity").mActivity
     resolver = activity.getContentResolver()
@@ -311,14 +391,22 @@ def _android_read_uri(uri: str) -> bytes:
     if stream is None:
         raise RuntimeError("unable to open input stream")
     ByteArrayOutputStream = autoclass("java.io.ByteArrayOutputStream")
-    buffer = jarray("b")(4096)
     baos = ByteArrayOutputStream()
     try:
-        while True:
-            count = stream.read(buffer)
-            if count == -1:
-                break
-            baos.write(buffer, 0, count)
+        try:
+            from jnius import jarray  # type: ignore
+            buffer = jarray("b")(4096)
+            while True:
+                count = stream.read(buffer)
+                if count == -1:
+                    break
+                baos.write(buffer, 0, count)
+        except Exception:
+            while True:
+                byte_val = stream.read()
+                if byte_val == -1:
+                    break
+                baos.write(byte_val)
     finally:
         stream.close()
     data = baos.toByteArray()
@@ -328,7 +416,7 @@ def _android_read_uri(uri: str) -> bytes:
 def _android_write_uri(uri: str, data: bytes) -> None:
     if not IS_ANDROID:
         raise RuntimeError("android uri write not available")
-    from jnius import autoclass, jarray  # type: ignore
+    from jnius import autoclass  # type: ignore
     Uri = autoclass("android.net.Uri")
     activity = autoclass("org.kivy.android.PythonActivity").mActivity
     resolver = activity.getContentResolver()
@@ -337,7 +425,15 @@ def _android_write_uri(uri: str, data: bytes) -> None:
     if stream is None:
         raise RuntimeError("unable to open output stream")
     try:
-        stream.write(jarray("b")(data))
+        try:
+            from jnius import jarray  # type: ignore
+            stream.write(jarray("b")(data))
+        except Exception:
+            try:
+                stream.write(data)
+            except Exception:
+                for byte_val in data:
+                    stream.write(byte_val)
         stream.flush()
     finally:
         stream.close()
@@ -539,7 +635,18 @@ class TrainingScreen(Screen):
             self._card_bg = RoundedRectangle(radius=[12], pos=self.card_box.pos, size=self.card_box.size)
         self.card_box.bind(pos=self._update_card_bg, size=self._update_card_bg)
 
-        self.prompt_label = _styled_label("")
+        self.prompt_label = Label(
+            text="",
+            font_size=_ui(BASE_PROMPT_FONT_SIZE),
+            color=TEXT_COLOR,
+            halign="center",
+            valign="middle",
+        )
+        if APP_FONT_NAME:
+            self.prompt_label.font_name = APP_FONT_NAME
+        self.prompt_label.size_hint_y = None
+        self.prompt_label.height = _ui(120)
+        self.prompt_label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
         self.card_box.add_widget(self.prompt_label)
 
         info_row = BoxLayout(orientation="horizontal", spacing=_ui(8), size_hint_y=None)
@@ -573,9 +680,16 @@ class TrainingScreen(Screen):
         self.answer_input.text = ""
         self.feedback_label.text = ""
         self.app.update_training_view()
+        self.focus_answer()
 
     def submit(self) -> None:
         self.app.submit_answer(self.answer_input.text)
+
+    def focus_answer(self) -> None:
+        def _apply(_dt):
+            self.answer_input.focus = True
+            self.answer_input.cursor = (len(self.answer_input.text or ""), 0)
+        Clock.schedule_once(_apply, 0)
 
 
 class VocabScreen(Screen):
@@ -780,8 +894,23 @@ class CalendarScreen(Screen):
         layout = BoxLayout(orientation="vertical")
         layout.add_widget(TopBar(app, "Kalender"))
         self.body = BoxLayout(orientation="vertical", padding=_ui(16), spacing=_ui(8))
-        self.month_label = _styled_label("")
-        self.body.add_widget(self.month_label)
+        self.current_month = None
+        month_header = BoxLayout(orientation="horizontal", size_hint_y=None,
+                                 height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        prev_btn = Button(text=ARROW_LEFT_ICON, size_hint_x=None, width=_ui(60))
+        next_btn = Button(text=ARROW_RIGHT_ICON, size_hint_x=None, width=_ui(60))
+        prev_btn.bind(on_release=lambda *_: self._shift_month(-1))
+        next_btn.bind(on_release=lambda *_: self._shift_month(1))
+        self.month_label = Label(text="", font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR)
+        if APP_FONT_NAME:
+            self.month_label.font_name = APP_FONT_NAME
+        self.month_label.halign = "center"
+        self.month_label.valign = "middle"
+        self.month_label.bind(size=lambda lbl, *_: setattr(lbl, "text_size", lbl.size))
+        month_header.add_widget(prev_btn)
+        month_header.add_widget(self.month_label)
+        month_header.add_widget(next_btn)
+        self.body.add_widget(month_header)
         self.header_grid = GridLayout(cols=7, spacing=_ui(4), size_hint_y=None, height=_ui(24))
         self.grid = GridLayout(cols=7, spacing=4, size_hint_y=None, row_force_default=True,
                                row_default_height=_ui(BASE_CALENDAR_CELL_HEIGHT))
@@ -802,14 +931,17 @@ class CalendarScreen(Screen):
         self.add_widget(layout)
 
     def on_pre_enter(self, *args):
+        if self.current_month is None:
+            now = datetime.now()
+            self.current_month = datetime(now.year, now.month, 1)
         self._build_month()
 
     def _build_month(self):
         self.grid.clear_widgets()
         self.header_grid.clear_widgets()
         self.exam_list.clear_widgets()
-        now = datetime.now()
-        self.month_label.text = now.strftime("%B %Y")
+        month = self.current_month or datetime.now()
+        self.month_label.text = month.strftime("%B %Y")
         counts = self.app.training_counts_by_day()
 
         weekdays = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"]
@@ -817,8 +949,8 @@ class CalendarScreen(Screen):
             self.header_grid.add_widget(Label(text=wd, bold=True, font_size=_ui(BASE_LABEL_FONT_SIZE), color=TEXT_COLOR))
 
         cal = calendar.Calendar(firstweekday=0)
-        for day in cal.itermonthdates(now.year, now.month):
-            if day.month != now.month:
+        for day in cal.itermonthdates(month.year, month.month):
+            if day.month != month.month:
                 self.grid.add_widget(CalendarCell("", ""))
                 continue
             key = day.isoformat()
@@ -832,7 +964,7 @@ class CalendarScreen(Screen):
                 parts.append(f"{STAR_ICON}{review_count}")
             count_text = " ".join(parts)
             self.grid.add_widget(CalendarCell(str(day.day), count_text))
-        exams = self.app.get_exam_results_for_month(now.year, now.month)
+        exams = self.app.get_exam_results_for_month(month.year, month.month)
         if not exams:
             self.exam_list.add_widget(_styled_label("Keine Prüfungen in diesem Monat."))
         else:
@@ -842,6 +974,19 @@ class CalendarScreen(Screen):
                              on_release=lambda _btn, e=entry: self.app.show_exam_result_popup(e))
                 self.exam_list.add_widget(btn)
 
+    def _shift_month(self, delta: int) -> None:
+        base = self.current_month or datetime.now()
+        year = base.year
+        month = base.month + delta
+        if month < 1:
+            month = 12
+            year -= 1
+        elif month > 12:
+            month = 1
+            year += 1
+        self.current_month = datetime(year, month, 1)
+        self._build_month()
+
 
 class JonMemApp(App):
     def build(self):
@@ -849,6 +994,9 @@ class JonMemApp(App):
         self.title = "JonMem"
         self._error_log = []
         self._last_exception = ""
+        self._android_activity_bound = False
+        self._android_export_pending_path = None
+        self._android_import_pending = False
         if os.path.exists(FONT_PATH):
             LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
             APP_FONT_NAME = "DejaVuSans"
@@ -865,6 +1013,7 @@ class JonMemApp(App):
         Spinner.background_color = BUTTON_BG
         if IS_ANDROID:
             Window.softinput_mode = "resize"
+            self._bind_android_activity()
         Window.bind(on_focus=self._on_window_focus)
         Window.clearcolor = SURFACE_BG
 
@@ -874,6 +1023,7 @@ class JonMemApp(App):
         self.progress_path = os.path.join(self.data_dir, "progress.json")
         self.log_path = os.path.join(self.data_dir, "training_log.json")
         self.exam_log_path = os.path.join(self.data_dir, "exam_log.json")
+        self.last_session_log_path = os.path.join(self.data_dir, "last_session_log.json")
         self.settings_path = os.path.join(self.data_dir, "settings.json")
         self.beep_path = os.path.join(self.data_dir, "success.wav")
         self.almost_beep_path = os.path.join(self.data_dir, "almost.wav")
@@ -886,6 +1036,7 @@ class JonMemApp(App):
         self.progress = _load_json(self.progress_path, {})
         self.training_log = _load_json(self.log_path, [])
         self.exam_log = _load_json(self.exam_log_path, [])
+        self.last_session_log = _load_json(self.last_session_log_path, {})
         self.settings = _load_json(self.settings_path, {
             "review_topics_by_lang": {},
             "review_topic_filter_enabled": {},
@@ -923,6 +1074,8 @@ class JonMemApp(App):
         self._second_chance_item_id = None
         self._pending_new_card = None
         self._intro_queue = []
+        self._session_log_meta = {}
+        self._session_log_entries = []
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -938,6 +1091,11 @@ class JonMemApp(App):
         self.sm.current = "menu"
         return self.sm
 
+    def on_start(self):
+        if IS_ANDROID:
+            self._ensure_notification_permission()
+            self._ensure_notification_channel()
+
     def _on_window_focus(self, _window, focused: bool) -> None:
         if focused:
             Clock.schedule_once(self._force_redraw, 0)
@@ -948,9 +1106,161 @@ class JonMemApp(App):
         except Exception:
             pass
 
+    def _ensure_notification_permission(self) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            Permission = autoclass("android.Manifest$permission")
+            PackageManager = autoclass("android.content.pm.PackageManager")
+            perm = Permission.POST_NOTIFICATIONS
+            if activity.checkSelfPermission(perm) != PackageManager.PERMISSION_GRANTED:
+                activity.requestPermissions([perm], NOTIFICATION_PERMISSION_REQUEST)
+        except Exception as exc:
+            self._log_error("notification permission failed", exc)
+
+    def _ensure_notification_channel(self) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            NotificationChannel = autoclass("android.app.NotificationChannel")
+            NotificationManager = autoclass("android.app.NotificationManager")
+            Context = autoclass("android.content.Context")
+            activity = autoclass("org.kivy.android.PythonActivity").mActivity
+            channel = NotificationChannel(
+                NOTIFICATION_CHANNEL_ID,
+                "Trainer Notifications",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+            nm = activity.getSystemService(Context.NOTIFICATION_SERVICE)
+            nm.createNotificationChannel(channel)
+        except Exception as exc:
+            self._log_error("notification channel failed", exc)
+
     def on_resume(self):
         self._force_redraw()
         return True
+
+    def _flush_state(self) -> None:
+        try:
+            self._save_vocab()
+        except Exception as exc:
+            self._log_error("flush vocab failed", exc)
+        try:
+            _save_json(self.progress_path, self.progress)
+        except Exception as exc:
+            self._log_error("flush progress failed", exc)
+        try:
+            _save_json(self.log_path, self.training_log)
+        except Exception as exc:
+            self._log_error("flush training log failed", exc)
+        try:
+            _save_json(self.exam_log_path, self.exam_log)
+        except Exception as exc:
+            self._log_error("flush exam log failed", exc)
+        try:
+            _save_json(self.last_session_log_path, self.last_session_log)
+        except Exception as exc:
+            self._log_error("flush last session log failed", exc)
+
+    def _bind_android_activity(self) -> None:
+        if self._android_activity_bound:
+            return
+        try:
+            from android import activity  # type: ignore
+        except Exception as exc:
+            self._log_error("android activity bind failed", exc)
+            return
+        activity.bind(on_activity_result=self._on_android_activity_result)
+        self._android_activity_bound = True
+
+    def _on_android_activity_result(self, request_code, result_code, data) -> None:
+        if request_code == ANDROID_EXPORT_REQUEST:
+            Clock.schedule_once(lambda *_: self._handle_android_export_result(result_code, data), 0)
+            return
+        if request_code == ANDROID_IMPORT_REQUEST:
+            Clock.schedule_once(lambda *_: self._handle_android_import_result(result_code, data), 0)
+            return
+
+    def _handle_android_export_result(self, result_code, data) -> None:
+        pending_path = self._android_export_pending_path
+        self._android_export_pending_path = None
+        if pending_path is None:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            Activity = autoclass("android.app.Activity")
+            Intent = autoclass("android.content.Intent")
+            if result_code != Activity.RESULT_OK or data is None:
+                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."), size_hint=(0.7, 0.3)).open()
+                return
+            uri = data.getData()
+            if uri is None:
+                raise RuntimeError("no uri returned")
+            try:
+                take_flags = data.getFlags() & (
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                resolver = activity.getContentResolver()
+                resolver.takePersistableUriPermission(uri, take_flags)
+            except Exception:
+                pass
+            data_bytes = _read_bytes(pending_path)
+            _android_write_uri(uri.toString(), data_bytes)
+            _styled_popup(title="Datenbank Export", content=Label(text="Export erfolgreich."), size_hint=(0.7, 0.3)).open()
+        except Exception as exc:
+            self._log_error("android export failed", exc)
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _handle_android_import_result(self, result_code, data) -> None:
+        self._android_import_pending = False
+        try:
+            from jnius import autoclass  # type: ignore
+            Activity = autoclass("android.app.Activity")
+            Intent = autoclass("android.content.Intent")
+            if result_code != Activity.RESULT_OK or data is None:
+                _styled_popup(title="Datenbank Import", content=Label(text="Import abgebrochen."), size_hint=(0.7, 0.3)).open()
+                return
+            uri = data.getData()
+            if uri is None:
+                raise RuntimeError("no uri returned")
+            try:
+                take_flags = data.getFlags() & (
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                resolver = activity.getContentResolver()
+                resolver.takePersistableUriPermission(uri, take_flags)
+            except Exception:
+                pass
+            raw = _android_read_uri(uri.toString())
+            try:
+                filename = f"import_{datetime.now().strftime('%Y%m%d_%H%M%S')}{backup_io.BACKUP_EXT}"
+                path = os.path.join(self.backup_dir, filename)
+                with open(path, "wb") as handle:
+                    handle.write(raw)
+            except Exception:
+                pass
+            payload = backup_io.load_payload_from_yaml_bytes(raw)
+            self._preview_import_payload(payload, source_label=uri.toString())
+        except Exception as exc:
+            self._log_error("android import failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _android_start_activity(self, intent, request_code: int) -> None:
+        from jnius import autoclass  # type: ignore
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        activity.startActivityForResult(intent, request_code)
+
+    def on_pause(self):
+        self._flush_state()
+        return True
+
+    def on_stop(self):
+        self._flush_state()
 
     def _log_error(self, label: str, exc: Exception | None = None) -> None:
         msg = f"[{datetime.now().isoformat(timespec='seconds')}] {label}"
@@ -1236,6 +1546,19 @@ class JonMemApp(App):
         card["mnemonic"] = cleaned
         self._save_vocab()
 
+    def _save_card_hint(self, card_id: str | None, direction: str, text: str) -> None:
+        if not card_id:
+            return
+        card = self._get_card_by_id(card_id)
+        if not card:
+            return
+        key = training.hint_key(direction)
+        cleaned = (text or "").strip()
+        if (card.get(key, "") or "").strip() == cleaned:
+            return
+        card[key] = cleaned
+        self._save_vocab()
+
     def show_training_setup(self) -> None:
         self.sm.current = "setup"
 
@@ -1266,12 +1589,11 @@ class JonMemApp(App):
         popup.open()
 
     def _show_license(self) -> None:
-        try:
-            text = _read_text(os.path.join(os.path.dirname(__file__), "License.txt"))
-        except Exception as exc:
-            text = f"License not available: {exc}"
+        text = LICENSE_TEXT
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
-        box.add_widget(_styled_text_input(text=text, readonly=True))
+        text_box = BoxLayout(orientation="vertical", spacing=_ui(4))
+        text_box.add_widget(_styled_label(text))
+        box.add_widget(_make_scrollable(text_box))
         box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                               on_release=lambda *_: popup.dismiss()))
         popup = _styled_popup(title="Lizenz", content=box, size_hint=(0.9, 0.9))
@@ -1282,10 +1604,14 @@ class JonMemApp(App):
         webbrowser.open(SUPPORT_URL)
 
     def _export_backup(self) -> None:
+        if IS_ANDROID:
+            self._export_backup_android()
+            return
         if filechooser is not None and hasattr(filechooser, "save_file"):
             try:
                 paths = filechooser.save_file(title="Datenbank Export", path=os.path.expanduser("~"),
-                                              filters=[("YAML", "*.yaml")])
+                                              filters=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"),
+                                                       ("YAML", "*.yaml")])
                 if paths:
                     self._export_backup_to(paths[0])
                     return
@@ -1304,7 +1630,26 @@ class JonMemApp(App):
 
     def _default_backup_filename(self) -> str:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"backup_{timestamp}.yaml"
+        return f"backup_{timestamp}{backup_io.BACKUP_EXT}"
+
+    def _export_backup_android(self) -> None:
+        try:
+            self._flush_state()
+            filename = self._default_backup_filename()
+            path = os.path.join(self.backup_dir, filename)
+            payload = self._build_backup_payload()
+            backup_io.persist_payload_to_file(path, payload)
+            from jnius import autoclass  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("application/octet-stream")
+            intent.putExtra(Intent.EXTRA_TITLE, filename)
+            self._android_export_pending_path = path
+            self._android_start_activity(intent, ANDROID_EXPORT_REQUEST)
+        except Exception as exc:
+            self._log_error("android export start failed", exc)
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
 
     def _export_backup_choose_dir(self) -> None:
         try:
@@ -1343,25 +1688,20 @@ class JonMemApp(App):
         self._export_backup_to(path, show_path=True)
 
     def _export_backup_to(self, path: str, show_path: bool = False) -> None:
-        payload = {
-            "meta": {"created": datetime.now().isoformat(timespec="seconds")},
-            "vocab": self.vocab,
-            "progress": self.progress,
-            "training_log": self.training_log,
-            "exam_log": self.exam_log,
-        }
+        self._flush_state()
+        payload = self._build_backup_payload()
         try:
             path = _normalize_path(path.strip())
-            path = _ensure_yaml_extension(path)
+            path = _ensure_backup_extension(path)
             if _is_content_uri(path):
-                data = _dump_yaml_bytes(payload)
+                data = backup_io.dump_payload_to_yaml_bytes(payload)
                 _android_write_uri(path, data)
                 text = "Export erfolgreich."
             else:
                 dir_path = os.path.dirname(path)
                 if dir_path:
                     os.makedirs(dir_path, exist_ok=True)
-                _save_yaml(path, payload)
+                backup_io.persist_payload_to_file(path, payload)
                 text = f"Gespeichert:\n{path}" if show_path else "Export erfolgreich."
             _styled_popup(title="Datenbank Export", content=Label(text=text), size_hint=(0.9, 0.4)).open()
         except Exception as exc:
@@ -1369,12 +1709,16 @@ class JonMemApp(App):
             _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.9, 0.4)).open()
 
     def _import_backup_prompt(self) -> None:
+        if IS_ANDROID:
+            self._import_backup_android()
+            return
         if filechooser is not None and hasattr(filechooser, "open_file"):
             try:
                 paths = filechooser.open_file(title="Datenbank Import", path=os.path.expanduser("~"),
-                                              filters=[("YAML", "*.yaml")], multiple=False)
+                                              filters=[("JonMem Backup", f"*{backup_io.BACKUP_EXT}"),
+                                                       ("YAML", "*.yaml")], multiple=False)
                 if paths:
-                    self._import_backup(paths[0])
+                    self._preview_import_from_path(paths[0])
                 return
             except Exception as exc:
                 self._log_error("filechooser open failed", exc)
@@ -1386,7 +1730,7 @@ class JonMemApp(App):
 
         def do_import(_):
             popup.dismiss()
-            self._import_backup(path_input.text.strip())
+            self._preview_import_from_path(path_input.text.strip())
 
         btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
         btn_row.add_widget(Button(text="Importieren", on_release=do_import))
@@ -1395,30 +1739,167 @@ class JonMemApp(App):
         popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.5))
         popup.open()
 
-    def _import_backup(self, path: str) -> None:
+    def _preview_import_from_path(self, path: str) -> None:
         try:
             path = _normalize_path(path.strip())
+            if not path:
+                return
             if _is_content_uri(path):
                 raw = _android_read_uri(path)
-                data = _load_yaml_bytes(raw)
+                payload = backup_io.load_payload_from_yaml_bytes(raw)
+                source_label = path
             else:
-                data = _load_yaml(path)
-            if "vocab" in data:
-                self.vocab = data["vocab"]
-                self._save_vocab()
-            if "progress" in data:
-                self.progress = data["progress"]
-                _save_json(self.progress_path, self.progress)
-            if "training_log" in data:
-                self.training_log = data["training_log"]
-                _save_json(self.log_path, self.training_log)
-            if "exam_log" in data:
-                self.exam_log = data["exam_log"]
-                _save_json(self.exam_log_path, self.exam_log)
-            _styled_popup(title="Datenbank Import", content=Label(text="Import erfolgreich."), size_hint=(0.6, 0.4)).open()
+                payload = backup_io.load_payload_from_path(path)
+                source_label = path
+            self._preview_import_payload(payload, source_label)
+        except Exception as exc:
+            self._log_error("backup import load failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+
+    def _preview_import_payload(self, payload: dict, source_label: str) -> None:
+        try:
+            payload = backup_io.normalize_backup_payload(payload)
+            scan = backup_io.scan_backup_payload(payload)
+        except Exception as exc:
+            self._log_error("backup import scan failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            return
+
+        lang_count = scan["language_count"]
+        topic_count = scan["topic_count"]
+        card_count = scan["card_count"]
+        lines = [
+            f"Gefunden: {lang_count} Sprachen, {topic_count} Kategorien, {card_count} Vokabeln.",
+        ]
+        if scan["languages"]:
+            lines.append("Sprachen: " + ", ".join(scan["languages"]))
+        if source_label:
+            lines.append(f"Datei: {source_label}")
+        text = "\n".join(lines)
+
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(text))
+
+        def do_import(_):
+            popup.dismiss()
+            self._import_backup_confirmed(payload, scan)
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Überschreiben", on_release=do_import))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.6))
+        popup.open()
+
+    def _import_backup_confirmed(self, payload: dict, scan: dict) -> None:
+        self._flush_state()
+        rollback_payload = self._build_backup_payload()
+        rollback_path = None
+        try:
+            rollback_filename = f"rollback_{datetime.now().strftime('%Y%m%d_%H%M%S')}{backup_io.BACKUP_EXT}"
+            rollback_path = os.path.join(self.backup_dir, rollback_filename)
+            backup_io.persist_payload_to_file(rollback_path, rollback_payload)
+        except Exception as exc:
+            self._log_error("rollback backup failed", exc)
+
+        try:
+            self._persist_payload(payload)
+            self._apply_payload_to_state(payload)
+            msg = (
+                "Import erfolgreich.\n"
+                f"Sprachen: {scan['language_count']}, Kategorien: {scan['topic_count']}, "
+                f"Vokabeln: {scan['card_count']}."
+            )
+            _styled_popup(title="Datenbank Import", content=Label(text=msg), size_hint=(0.8, 0.4)).open()
         except Exception as exc:
             self._log_error("backup import failed", exc)
-            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.4)).open()
+            self._offer_import_rollback(exc, rollback_path)
+
+    def _persist_payload(self, payload: dict) -> None:
+        backup_io.persist_payload_to_files(
+            payload,
+            vocab_path=self.vocab_path,
+            progress_path=self.progress_path,
+            training_log_path=self.log_path,
+            exam_log_path=self.exam_log_path,
+        )
+
+    def _apply_payload_to_state(self, payload: dict) -> None:
+        self.vocab = payload.get("vocab", {})
+        self.progress = payload.get("progress", {})
+        self.training_log = payload.get("training_log", [])
+        self.exam_log = payload.get("exam_log", [])
+
+    def _offer_import_rollback(self, exc: Exception, rollback_path: str | None) -> None:
+        lines = [f"Import-Fehler: {exc}"]
+        if rollback_path:
+            lines.append("Rollback ist verfügbar.")
+        text = "\n".join(lines)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(text))
+
+        def do_rollback(_):
+            popup.dismiss()
+            if rollback_path:
+                self._run_rollback(rollback_path)
+            else:
+                _styled_popup(title="Rollback", content=Label(text="Kein Rollback verfügbar."), size_hint=(0.7, 0.3)).open()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        if rollback_path:
+            btn_row.add_widget(Button(text="Rollback", on_release=do_rollback))
+        btn_row.add_widget(Button(text="Schließen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.6))
+        popup.open()
+
+    def _run_rollback(self, rollback_path: str) -> None:
+        try:
+            payload = backup_io.load_payload_from_path(rollback_path)
+            payload = backup_io.normalize_backup_payload(payload)
+            self._persist_payload(payload)
+            self._apply_payload_to_state(payload)
+            _styled_popup(title="Rollback", content=Label(text="Rollback erfolgreich."), size_hint=(0.7, 0.3)).open()
+        except Exception as exc:
+            self._log_error("rollback failed", exc)
+            _styled_popup(title="Rollback", content=Label(text=f"Rollback-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _import_backup_android(self) -> None:
+        try:
+            from jnius import autoclass  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+            intent.addCategory(Intent.CATEGORY_OPENABLE)
+            intent.setType("*/*")
+            mime_types = ["application/octet-stream", "application/x-yaml", "text/yaml", "application/yaml", "text/plain"]
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mime_types)
+            self._android_import_pending = True
+            self._android_start_activity(intent, ANDROID_IMPORT_REQUEST)
+        except Exception as exc:
+            self._log_error("android import start failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+
+    def _build_backup_payload(self) -> dict:
+        return backup_io.build_backup_payload(
+            self.vocab,
+            self.progress,
+            self.training_log,
+            self.exam_log,
+        )
+
+    def _apply_import_data(self, data: dict) -> None:
+        if "vocab" in data:
+            self.vocab = data["vocab"]
+            self._save_vocab()
+        if "progress" in data:
+            self.progress = data["progress"]
+            _save_json(self.progress_path, self.progress)
+        if "training_log" in data:
+            self.training_log = data["training_log"]
+            _save_json(self.log_path, self.training_log)
+        if "exam_log" in data:
+            self.exam_log = data["exam_log"]
+            _save_json(self.exam_log_path, self.exam_log)
 
     def show_intro_category_picker(self, lang: str, direction: str) -> None:
         lang = (lang or "").strip()
@@ -1544,12 +2025,100 @@ class JonMemApp(App):
             lines.extend(self._error_log)
         if self._last_exception:
             lines.append("\nLast exception:\n" + self._last_exception)
+        session_text = self._format_session_log_text(self.last_session_log)
+        lines.append("\nLetzte Session:\n" + session_text)
         box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(6))
         box.add_widget(_styled_text_input(text="\n".join(lines), readonly=True))
-        box.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
-                              on_release=lambda *_: popup.dismiss()))
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Speichern unter...", on_release=lambda *_: self._save_last_session_log_prompt()))
+        btn_row.add_widget(Button(text="Schließen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
         popup = _styled_popup(title="Debug report", content=box, size_hint=(0.95, 0.95))
         popup.open()
+
+    def _format_session_log_text(self, log: dict) -> str:
+        if not log:
+            return "Keine Session protokolliert."
+        meta = log.get("meta", {})
+        items = log.get("items", [])
+        lines = []
+        started = meta.get("started", "")
+        ended = meta.get("ended", "")
+        mode = meta.get("mode", "")
+        direction = meta.get("direction", "")
+        lang = meta.get("lang", "")
+        topic_name = meta.get("topic_name", "")
+        total = meta.get("total", 0)
+        correct = meta.get("correct", 0)
+        cancelled = meta.get("cancelled", False)
+        lines.append(f"Gestartet: {started}")
+        lines.append(f"Beendet: {ended}")
+        lines.append(f"Modus: {mode}")
+        lines.append(f"Richtung: {direction}")
+        lines.append(f"Sprache: {lang}")
+        if topic_name:
+            lines.append(f"Kategorie: {topic_name}")
+        lines.append(f"Ergebnis: {correct}/{total}")
+        lines.append(f"Abgebrochen: {bool(cancelled)}")
+        lines.append("")
+        for entry in items:
+            idx = entry.get("index", "")
+            prompt = entry.get("prompt", "")
+            expected = entry.get("expected", "")
+            given = entry.get("given", "")
+            ok = "ok" if entry.get("correct") else "falsch"
+            stage_before = entry.get("stage_before", "")
+            stage_after = entry.get("stage_after", "")
+            attempt = entry.get("attempt", 1)
+            lines.append(f"{idx}. {prompt}")
+            lines.append(f"   Eingabe: {given} | Lösung: {expected} | {ok} | Versuch: {attempt}")
+            lines.append(f"   Stufe: {stage_before} -> {stage_after}")
+        return "\n".join(lines).strip()
+
+    def _save_last_session_log_prompt(self) -> None:
+        if not self.last_session_log:
+            _styled_popup(title="Debug report", content=Label(text="Kein Session-Protokoll vorhanden."),
+                          size_hint=(0.7, 0.3)).open()
+            return
+        default_dir = _default_download_dir()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = f"jonmem_session_{timestamp}.txt"
+        default_path = os.path.join(default_dir, default_name)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Pfad für Session-Protokoll"))
+        path_input = _styled_text_input(multiline=False, text=default_path)
+        box.add_widget(path_input)
+
+        def _save(_):
+            popup.dismiss()
+            self._save_last_session_log_to(path_input.text.strip())
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Speichern", on_release=_save))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Session-Protokoll speichern", content=_make_scrollable(box), size_hint=(0.9, 0.5))
+        popup.open()
+
+    def _save_last_session_log_to(self, path: str) -> None:
+        text = self._format_session_log_text(self.last_session_log)
+        try:
+            path = _normalize_path(path.strip())
+            path = _ensure_txt_extension(path)
+            if _is_content_uri(path):
+                _android_write_uri(path, text.encode("utf-8"))
+            else:
+                dir_path = os.path.dirname(path)
+                if dir_path:
+                    os.makedirs(dir_path, exist_ok=True)
+                with open(path, "w", encoding="utf-8") as handle:
+                    handle.write(text)
+            _styled_popup(title="Session-Protokoll", content=Label(text=f"Gespeichert:\n{path}"),
+                          size_hint=(0.9, 0.4)).open()
+        except Exception as exc:
+            self._log_error("session log save failed", exc)
+            _styled_popup(title="Session-Protokoll", content=Label(text=f"Fehler: {exc}"),
+                          size_hint=(0.9, 0.4)).open()
 
     def _check_notification(self) -> None:
         if notification is None:
@@ -1668,6 +2237,8 @@ class JonMemApp(App):
             rng.shuffle(unseen_cards)
             unique_limit = max(1, SESSION_MAX_ITEMS // max(1, INTRODUCE_REPEAT_COUNT))
             unseen_items = [self._card_to_item(card) for card in unseen_cards[:unique_limit]]
+            for item in unseen_items:
+                item["intro_new"] = True
             if len(unseen_items) < unique_limit:
                 needed = unique_limit - len(unseen_items)
                 review_fill = training.build_session_items(
@@ -1692,7 +2263,8 @@ class JonMemApp(App):
                               size_hint=(0.6, 0.3)).open()
                 return
             session = unique_items * max(1, INTRODUCE_REPEAT_COUNT)
-            self.session_items = training.shuffle_avoid_adjacent(session, "id", random)[:SESSION_MAX_ITEMS]
+            session = training.shuffle_avoid_adjacent(session, "id", random)
+            self.session_items = self._defer_intro_items(session)[:SESSION_MAX_ITEMS]
             self._intro_queue = list(unseen_items)
         elif mode == "exam":
             if not intro_topic_id:
@@ -1725,6 +2297,21 @@ class JonMemApp(App):
         else:
             self.time_left = SESSION_SECONDS
         self.session_start = datetime.now()
+        self._session_log_entries = []
+        self._session_log_meta = {
+            "started": self.session_start.isoformat(timespec="seconds"),
+            "mode": self.session_mode,
+            "direction": self.session_direction,
+            "lang": self.session_lang,
+            "items_planned": len(self.session_items),
+        }
+        topic_name = ""
+        if self.session_mode == "introduce" and self.session_intro_topic:
+            topic_name = self.get_topic_name(self.session_intro_topic, self.session_lang)
+        if self.session_mode == "exam" and self.exam_category_id:
+            topic_name = self.get_topic_name(self.exam_category_id, self.session_lang)
+        if topic_name:
+            self._session_log_meta["topic_name"] = topic_name
         self._second_chance_active = False
         self._second_chance_item_id = None
         self._pending_new_card = None
@@ -1751,6 +2338,18 @@ class JonMemApp(App):
             max_stage=MAX_STAGE,
             pyramid_stage_weights=PYRAMID_STAGE_WEIGHTS,
         )
+
+    def _defer_intro_items(self, items: list[dict]) -> list[dict]:
+        if self.session_mode != "introduce":
+            return items
+        deferred = []
+        remaining = []
+        for item in items:
+            if item.get("intro_new") and int(item.get("stage", 1) or 1) == 1:
+                deferred.append(item)
+            else:
+                remaining.append(item)
+        return remaining + deferred
 
     def _card_to_item(self, card: dict, prog: dict | None = None) -> dict:
         stage = 1
@@ -1792,6 +2391,7 @@ class JonMemApp(App):
         if not unseen_cards:
             return
         new_item = self._card_to_item(unseen_cards[0])
+        new_item["intro_new"] = True
         self.session_items.append(new_item)
         self._pending_new_card = new_item
 
@@ -1826,6 +2426,7 @@ class JonMemApp(App):
             self.screen_train.level_label.text = "Level 1"
             self.screen_train._card_color.rgba = CARD_BG
         self.screen_train.pyramid_button.disabled = (self.session_mode == "exam")
+        self.screen_train.focus_answer()
 
     def submit_answer(self, text: str) -> None:
         if self.session_index >= len(self.session_items):
@@ -1834,6 +2435,7 @@ class JonMemApp(App):
         expected = item.get("answer", "")
         if self.session_mode == "exam":
             correct = training.strict_match(text, expected)
+            stage_before = int(item.get("stage", 1) or 1)
             self.exam_total += 1
             if correct:
                 self.exam_correct += 1
@@ -1843,6 +2445,7 @@ class JonMemApp(App):
                     "given": text,
                     "correct": expected,
                 })
+            self._record_session_answer(item, text, correct, stage_before, stage_before, 1)
             if self._timer_event is not None:
                 self._timer_event.cancel()
                 self._timer_event = None
@@ -1859,10 +2462,14 @@ class JonMemApp(App):
                 if self._sound_success is not None:
                     self._sound_success.play()
                 prev_stage, new_stage = self._update_progress(item["id"], True)
+                self._sync_session_item_stage(item["id"], new_stage)
+                self._record_session_answer(item, text, True, prev_stage, new_stage, 2)
                 if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                     self._queue_new_intro_card()
             else:
-                self._update_progress(item["id"], False)
+                prev_stage, new_stage = self._update_progress(item["id"], False)
+                self._sync_session_item_stage(item["id"], new_stage)
+                self._record_session_answer(item, text, False, prev_stage, new_stage, 2)
 
             # Pause timer while showing feedback
             if self._timer_event is not None:
@@ -1880,6 +2487,8 @@ class JonMemApp(App):
             if self._sound_success is not None:
                 self._sound_success.play()
             prev_stage, new_stage = self._update_progress(item["id"], True)
+            self._sync_session_item_stage(item["id"], new_stage)
+            self._record_session_answer(item, text, True, prev_stage, new_stage, 1)
             if self.session_mode == "introduce" and prev_stage == 1 and new_stage == 2:
                 self._queue_new_intro_card()
 
@@ -1907,7 +2516,9 @@ class JonMemApp(App):
             self._show_second_chance_popup(hint_lines)
             return
 
-        self._update_progress(item["id"], False)
+        prev_stage, new_stage = self._update_progress(item["id"], False)
+        self._sync_session_item_stage(item["id"], new_stage)
+        self._record_session_answer(item, text, False, prev_stage, new_stage, 1)
 
         # Pause timer while showing feedback
         if self._timer_event is not None:
@@ -1924,32 +2535,47 @@ class JonMemApp(App):
         en_text = item.get("en", "")
         hint_de = item.get("hint_de_to_en", "")
         hint_en = item.get("hint_en_to_de", "")
-        mnemonic_text = item.get("mnemonic", "")
-        if not mnemonic_text:
+        direction = self.session_direction or "de_to_en"
+        hint_key = training.hint_key(direction)
+        current_hint = item.get(hint_key, "")
+        if not current_hint:
             card = self._get_card_by_id(item.get("id"))
             if card:
-                mnemonic_text = card.get("mnemonic", "")
+                current_hint = card.get(hint_key, "")
 
         layout = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(10))
-        layout.add_widget(Label(text=f"[color={color}]{status}[/color]", markup=True, size_hint_y=None, height=_ui(28)))
+        layout.add_widget(_styled_label(
+            f"[color={color}]{status}[/color]",
+            markup=True,
+            font_size=_ui(BASE_LABEL_FONT_SIZE + 4),
+            halign="left",
+        ))
         if not correct and given_text:
             safe_given = escape_markup(given_text)
-            layout.add_widget(Label(text=f"Deine Eingabe: [s]{safe_given}[/s]",
-                                    markup=True, size_hint_y=None, height=_ui(26)))
-        layout.add_widget(Label(text=f"Deutsch: {de_text}"))
+            layout.add_widget(_styled_label(
+                f"Deine Eingabe: [s]{safe_given}[/s]",
+                markup=True,
+                halign="left",
+            ))
+        layout.add_widget(_styled_label(f"Deutsch: {de_text}", halign="left"))
         lang = (self.session_lang or "en").upper()
-        layout.add_widget(Label(text=f"Zielsprache ({lang}): {en_text}"))
-        layout.add_widget(Label(text="Eselsbrücke/Notiz (optional)"))
-        mnemonic_input = _styled_text_input(text=mnemonic_text, multiline=True, size_hint_y=None, height=_ui(110))
-        layout.add_widget(mnemonic_input)
+        layout.add_widget(_styled_label(f"Zielsprache ({lang}): {en_text}", halign="left"))
+        layout.add_widget(_styled_label("Eselsbrücke (für diese Richtung)", halign="left"))
+        hint_input = _styled_text_input(text=current_hint, multiline=True, size_hint_y=None, height=_ui(110))
+        layout.add_widget(hint_input)
         if hint_de:
-            layout.add_widget(Label(text=f"Eselsbrücke DE → ZS: {hint_de}"))
+            layout.add_widget(_styled_label(f"Eselsbrücke DE → ZS: {hint_de}", halign="left"))
         if hint_en:
-            layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
+            layout.add_widget(_styled_label(f"Eselsbrücke ZS → DE: {hint_en}", halign="left"))
+
+        def _store_hint():
+            cleaned = (hint_input.text or "").strip()
+            self._save_card_hint(item.get("id"), direction, cleaned)
+            item[hint_key] = cleaned
+            item["hint"] = cleaned
 
         def _next(_):
-            self._save_card_mnemonic(item.get("id"), mnemonic_input.text)
-            item["mnemonic"] = (mnemonic_input.text or "").strip()
+            _store_hint()
             popup.dismiss()
             self.session_index += 1
             if self.session_index >= len(self.session_items):
@@ -1964,7 +2590,14 @@ class JonMemApp(App):
                     self.update_training_view()
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_next))
-        popup = _styled_popup(title="Lösung", content=layout, size_hint=(0.9, 0.8))
+        scroll = _make_scrollable(layout)
+        popup = _styled_popup(title="Lösung", content=scroll, size_hint=(0.92, 0.85))
+        popup.bind(on_dismiss=lambda *_: _store_hint())
+        hint_input.bind(
+            focus=lambda _inp, focused: Clock.schedule_once(lambda *_: _scroll_to_widget(hint_input), 0.05)
+            if focused else None
+        )
+        popup.bind(on_open=lambda *_: Clock.schedule_once(lambda *_: _scroll_to_widget(hint_input), 0.05))
         popup.open()
 
     def _show_second_chance_popup(self, hint_lines: list[str]) -> None:
@@ -2099,11 +2732,47 @@ class JonMemApp(App):
         _save_json(self.progress_path, self.progress)
         return stage, new_stage
 
+    def _sync_session_item_stage(self, card_id: str, new_stage: int) -> None:
+        for entry in self.session_items:
+            if entry.get("id") == card_id:
+                entry["stage"] = new_stage
+
+    def _record_session_answer(self, item: dict, given: str, correct: bool,
+                               stage_before: int, stage_after: int, attempt: int) -> None:
+        entry = {
+            "index": self.session_index + 1,
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "item_id": item.get("id"),
+            "prompt": item.get("prompt", ""),
+            "expected": item.get("answer", ""),
+            "given": given,
+            "correct": bool(correct),
+            "stage_before": int(stage_before),
+            "stage_after": int(stage_after),
+            "attempt": int(attempt),
+        }
+        self._session_log_entries.append(entry)
+
+    def _finalize_session_log(self, cancelled: bool) -> None:
+        if not self._session_log_meta:
+            return
+        meta = dict(self._session_log_meta)
+        meta["ended"] = datetime.now().isoformat(timespec="seconds")
+        meta["cancelled"] = bool(cancelled)
+        meta["total"] = len(self.session_items)
+        meta["correct"] = self.session_correct
+        self.last_session_log = {
+            "meta": meta,
+            "items": list(self._session_log_entries),
+        }
+        _save_json(self.last_session_log_path, self.last_session_log)
+
     def end_training(self, cancelled: bool) -> None:
         if self._timer_event is not None:
             self._timer_event.cancel()
             self._timer_event = None
         if cancelled:
+            self._finalize_session_log(cancelled=True)
             self.sm.current = "menu"
             return
         if self.session_mode == "introduce" and self.time_left <= 0:
@@ -2138,6 +2807,7 @@ class JonMemApp(App):
             self._finish_exam()
         else:
             _styled_popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
+        self._finalize_session_log(cancelled=False)
         self.sm.current = "menu"
 
     def show_session_pyramid(self) -> None:

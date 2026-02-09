@@ -1,4 +1,4 @@
-# JonMem
+﻿# JonMem
 
 ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden“-Training.
 
@@ -7,7 +7,10 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 - Einführen (neue Karten) und Wiederholen (gelernte Karten)
 - Pyramiden-Training mit Stufen (Leitner-ähnlich)
 - Themenfilter für Wiederholen (persistente Experten-Option)
-- Export/Import der lokalen Datenbank (YAML)
+- Export/Import der lokalen Datenbank (YAML, Android: nur SAF-Dateiauswahl)
+- Antwortfeld hat sofort Fokus; gesuchtes Wort ist groß und zentriert
+- Debug-Report mit Session-Protokoll + Export in benutzerzugänglichen Speicher
+- Lizenztext ist in der App eingebettet
 
 ## Datenformat (kurz)
 - Karten haben immer:
@@ -36,7 +39,7 @@ ADHS-optimierte Karteikarten-App (Kivy) mit Spaced-Repetition und „Pyramiden�
 1. Es werden nur Karten berücksichtigt, die **noch keinen Fortschritt** für die gewählte Richtung haben.
 2. Zu Beginn werden **4 neue Karten angezeigt** (Dialog **Neue Karte!** mit Lösung + Tipps).  
    Währenddessen läuft die Zeit nicht.
-3. Danach werden **genau diese 4 Karten in exakt der gezeigten Reihenfolge** abgefragt.
+3. Danach werden die neuen Karten im **Level-1-Block ganz hinten** abgefragt.
 4. Sobald eine Karte von Stufe 1 → 2 aufsteigt, wird **eine neue Karte gezeigt**  
    (Dialog **Neue Karte!**) und **am Ende der Liste als Stufe 1** eingefügt.
 5. Wenn die Session durch Zeitablauf endet, werden **alle Stufe-1-Karten wieder als ungesehen markiert**,  
@@ -88,7 +91,8 @@ uv run python main.py
 ```
 
 **Debug-Report in der App:**
-- Im Menü gibt es **Debug report**, der aktuelle Fehler und die letzte Exception anzeigt.
+- Im Menü gibt es **Debug report**, der aktuelle Fehler, die letzte Exception und das Protokoll der letzten Session anzeigt.
+- Das Session-Protokoll kann aus dem Debug-Report heraus als Textdatei gespeichert werden.
 
 ## Seed-Datenbank
 Die Seed-Datenbank liegt in `data/seed_vocab.yaml`.  

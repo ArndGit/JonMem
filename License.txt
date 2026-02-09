@@ -1,4 +1,4 @@
-"Copyright (C) 2025 Arnd Brandes.
+"Copyright (C) 2026 Arnd Brandes.
  Dieses Programm kann durch jedermann gemäß den Bestimmungen der Deutschen Freien Software Lizenz genutzt werden.
 
  DEUTSCHE FREIE SOFTWARE LIZENZ (DFSL)
