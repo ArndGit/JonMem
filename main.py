@@ -53,13 +53,14 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.6"
+__version__ = "0.7"
 
 
 IS_ANDROID = (kivy_platform == "android")
 IS_IOS = (kivy_platform == "ios")
 ANDROID_EXPORT_REQUEST = 41001
 ANDROID_IMPORT_REQUEST = 41002
+ANDROID_TREE_REQUEST = 41003
 NOTIFICATION_PERMISSION_REQUEST = 1001
 NOTIFICATION_CHANNEL_ID = "trainer"
 
@@ -990,6 +991,9 @@ class JonMemApp(App):
         self._android_activity_bound = False
         self._android_export_pending_path = None
         self._android_import_pending = False
+        self._android_tree_pending_action = None
+        self._android_tree_pending_bytes = None
+        self._android_tree_pending_filename = None
         if os.path.exists(FONT_PATH):
             LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
             APP_FONT_NAME = "DejaVuSans"
@@ -1033,6 +1037,7 @@ class JonMemApp(App):
         self.settings = _load_json(self.settings_path, {
             "review_topics_by_lang": {},
             "review_topic_filter_enabled": {},
+            "backup_tree_uri": "",
         })
         if not IS_ANDROID and not IS_IOS:
             self._init_desktop_debug_progress()
@@ -1193,6 +1198,373 @@ class JonMemApp(App):
         if request_code == ANDROID_IMPORT_REQUEST:
             Clock.schedule_once(lambda *_: self._handle_android_import_result(result_code, data), 0)
             return
+        if request_code == ANDROID_TREE_REQUEST:
+            Clock.schedule_once(lambda *_: self._handle_android_tree_result(result_code, data), 0)
+            return
+
+    def _get_backup_tree_uri(self) -> str | None:
+        if not isinstance(self.settings, dict):
+            return None
+        uri = self.settings.get("backup_tree_uri")
+        if isinstance(uri, str) and uri.strip():
+            return uri.strip()
+        return None
+
+    def _set_backup_tree_uri(self, uri: str) -> None:
+        if not uri:
+            return
+        if not isinstance(self.settings, dict):
+            return
+        self.settings["backup_tree_uri"] = uri
+        self._save_settings()
+
+    def _android_build_downloads_tree_uri(self) -> str | None:
+        if not IS_ANDROID:
+            return None
+        try:
+            from jnius import autoclass  # type: ignore
+            DocumentsContract = autoclass("android.provider.DocumentsContract")
+            uri = DocumentsContract.buildTreeDocumentUri(
+                "com.android.externalstorage.documents",
+                "primary:Download",
+            )
+            if uri is None:
+                return None
+            return uri.toString()
+        except Exception:
+            return None
+
+    def _android_backup_mime_types(self) -> list[str]:
+        return [
+            "application/x-yaml",
+            "text/yaml",
+            "application/yaml",
+            "text/plain",
+            "application/octet-stream",
+        ]
+
+    def _android_apply_mime_types(self, intent) -> None:
+        try:
+            from jnius import autoclass, jarray  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            String = autoclass("java.lang.String")
+            mime_array = jarray(String)(self._android_backup_mime_types())
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, mime_array)
+        except Exception:
+            try:
+                from jnius import autoclass  # type: ignore
+                Intent = autoclass("android.content.Intent")
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, self._android_backup_mime_types())
+            except Exception:
+                pass
+
+    def _android_apply_initial_uri(self, intent) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            DocumentsContract = autoclass("android.provider.DocumentsContract")
+            Uri = autoclass("android.net.Uri")
+            tree_uri = self._get_backup_tree_uri()
+            if tree_uri:
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(tree_uri))
+                return
+            downloads_tree = self._android_build_downloads_tree_uri()
+            if downloads_tree:
+                intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.parse(downloads_tree))
+        except Exception:
+            pass
+
+    def _android_export_bytes_from_state(self, pending_path: str | None = None) -> tuple[bytes, str]:
+        self._flush_state()
+        if pending_path and os.path.exists(pending_path):
+            filename = os.path.basename(pending_path)
+            return _read_bytes(pending_path), filename
+        payload = self._build_backup_payload()
+        return backup_io.dump_payload_to_yaml_bytes(payload), self._default_backup_filename()
+
+    def _android_choose_backup_folder(
+        self,
+        action: str,
+        data_bytes: bytes | None = None,
+        filename: str | None = None,
+    ) -> None:
+        if not IS_ANDROID:
+            return
+        try:
+            from jnius import autoclass  # type: ignore
+            Intent = autoclass("android.content.Intent")
+            intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE)
+            intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+            )
+            self._android_apply_initial_uri(intent)
+            self._android_tree_pending_action = action
+            self._android_tree_pending_bytes = data_bytes
+            self._android_tree_pending_filename = filename
+            self._android_start_activity(intent, ANDROID_TREE_REQUEST)
+        except Exception as exc:
+            self._log_error("android tree picker failed", exc)
+            _styled_popup(title="Backup-Ordner", content=Label(text=f"Fehler: {exc}"),
+                          size_hint=(0.8, 0.3)).open()
+
+    def _handle_android_tree_result(self, result_code, data) -> None:
+        action = self._android_tree_pending_action
+        data_bytes = self._android_tree_pending_bytes
+        filename = self._android_tree_pending_filename
+        self._android_tree_pending_action = None
+        self._android_tree_pending_bytes = None
+        self._android_tree_pending_filename = None
+        try:
+            from jnius import autoclass  # type: ignore
+            Activity = autoclass("android.app.Activity")
+            Intent = autoclass("android.content.Intent")
+            if result_code != Activity.RESULT_OK or data is None:
+                _styled_popup(title="Backup-Ordner", content=Label(text="Ordnerauswahl abgebrochen."),
+                              size_hint=(0.8, 0.3)).open()
+                return
+            uri = data.getData()
+            if uri is None:
+                raise RuntimeError("no uri returned")
+            try:
+                take_flags = data.getFlags() & (
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+                activity = autoclass("org.kivy.android.PythonActivity").mActivity
+                resolver = activity.getContentResolver()
+                resolver.takePersistableUriPermission(uri, take_flags)
+            except Exception:
+                pass
+            tree_uri = uri.toString()
+            self._set_backup_tree_uri(tree_uri)
+            if action == "export":
+                if data_bytes is None or filename is None:
+                    data_bytes, filename = self._android_export_bytes_from_state()
+                self._android_export_to_tree_uri(tree_uri, data_bytes, filename)
+            elif action == "import":
+                self._android_show_tree_import_picker(tree_uri)
+        except Exception as exc:
+            self._log_error("android tree result failed", exc)
+            _styled_popup(title="Backup-Ordner", content=Label(text=f"Fehler: {exc}"),
+                          size_hint=(0.8, 0.3)).open()
+
+    def _android_export_to_tree_uri(self, tree_uri: str, data: bytes, filename: str) -> None:
+        if not IS_ANDROID:
+            return
+        from jnius import autoclass  # type: ignore
+        Uri = autoclass("android.net.Uri")
+        DocumentsContract = autoclass("android.provider.DocumentsContract")
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        resolver = activity.getContentResolver()
+        tree = Uri.parse(tree_uri)
+        doc_id = DocumentsContract.getTreeDocumentId(tree)
+        parent_uri = DocumentsContract.buildDocumentUriUsingTree(tree, doc_id)
+        new_uri = None
+        last_exc = None
+        for mime_type in self._android_backup_mime_types():
+            try:
+                new_uri = DocumentsContract.createDocument(resolver, parent_uri, mime_type, filename)
+                if new_uri is not None:
+                    break
+            except Exception as exc:
+                last_exc = exc
+        if new_uri is None:
+            if last_exc:
+                raise last_exc
+            raise RuntimeError("unable to create document")
+        _android_write_uri(new_uri.toString(), data)
+        _styled_popup(title="Datenbank Export", content=Label(text="Im Backup-Ordner gespeichert."),
+                      size_hint=(0.8, 0.3)).open()
+
+    def _android_export_to_downloads(self, data: bytes, filename: str) -> None:
+        if not IS_ANDROID:
+            return
+        from jnius import autoclass  # type: ignore
+        ContentValues = autoclass("android.content.ContentValues")
+        MediaStoreDownloads = autoclass("android.provider.MediaStore$Downloads")
+        MediaColumns = autoclass("android.provider.MediaStore$MediaColumns")
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        resolver = activity.getContentResolver()
+        values = ContentValues()
+        values.put(MediaColumns.DISPLAY_NAME, filename)
+        values.put(MediaColumns.MIME_TYPE, "text/plain")
+        try:
+            values.put(MediaColumns.RELATIVE_PATH, "Download/JonMem")
+        except Exception:
+            pass
+        uri = resolver.insert(MediaStoreDownloads.EXTERNAL_CONTENT_URI, values)
+        if uri is None:
+            raise RuntimeError("unable to create downloads entry")
+        _android_write_uri(uri.toString(), data)
+        _styled_popup(title="Datenbank Export", content=Label(text="In Downloads gespeichert."),
+                      size_hint=(0.8, 0.3)).open()
+
+    def _android_list_tree_backups(self, tree_uri: str) -> list[dict]:
+        from jnius import autoclass  # type: ignore
+        Uri = autoclass("android.net.Uri")
+        DocumentsContract = autoclass("android.provider.DocumentsContract")
+        Document = autoclass("android.provider.DocumentsContract$Document")
+        activity = autoclass("org.kivy.android.PythonActivity").mActivity
+        resolver = activity.getContentResolver()
+        tree = Uri.parse(tree_uri)
+        doc_id = DocumentsContract.getTreeDocumentId(tree)
+        children_uri = DocumentsContract.buildChildDocumentsUriUsingTree(tree, doc_id)
+        projection = [
+            Document.COLUMN_DOCUMENT_ID,
+            Document.COLUMN_DISPLAY_NAME,
+            Document.COLUMN_LAST_MODIFIED,
+            Document.COLUMN_MIME_TYPE,
+        ]
+        cursor = resolver.query(children_uri, projection, None, None, None)
+        if cursor is None:
+            return []
+        entries = []
+        try:
+            idx_id = cursor.getColumnIndex(Document.COLUMN_DOCUMENT_ID)
+            idx_name = cursor.getColumnIndex(Document.COLUMN_DISPLAY_NAME)
+            idx_last = cursor.getColumnIndex(Document.COLUMN_LAST_MODIFIED)
+            idx_type = cursor.getColumnIndex(Document.COLUMN_MIME_TYPE)
+            while cursor.moveToNext():
+                doc_id = cursor.getString(idx_id) if idx_id >= 0 else None
+                name = cursor.getString(idx_name) if idx_name >= 0 else None
+                mime_type = cursor.getString(idx_type) if idx_type >= 0 else None
+                last_modified = cursor.getLong(idx_last) if idx_last >= 0 else 0
+                if not doc_id or not name:
+                    continue
+                if mime_type == Document.MIME_TYPE_DIR:
+                    continue
+                lower = name.lower()
+                if not lower.endswith(backup_io.ALLOWED_BACKUP_EXTS):
+                    continue
+                doc_uri = DocumentsContract.buildDocumentUriUsingTree(tree, doc_id)
+                entries.append({
+                    "name": name,
+                    "uri": doc_uri.toString(),
+                    "last_modified": last_modified,
+                })
+        finally:
+            cursor.close()
+        entries.sort(key=lambda item: (item.get("last_modified", 0), item.get("name", "")), reverse=True)
+        return entries
+
+    def _android_show_tree_import_picker(self, tree_uri: str) -> None:
+        try:
+            entries = self._android_list_tree_backups(tree_uri)
+        except Exception as exc:
+            self._log_error("tree backup list failed", exc)
+            _styled_popup(title="Datenbank Import", content=Label(text=f"Fehler: {exc}"),
+                          size_hint=(0.8, 0.3)).open()
+            return
+        if not entries:
+            _styled_popup(title="Datenbank Import", content=Label(text="Keine Backups im Ordner gefunden."),
+                          size_hint=(0.8, 0.3)).open()
+            return
+
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Backup-Datei auswählen"))
+        list_box = BoxLayout(orientation="vertical", spacing=_ui(6), size_hint_y=None)
+        list_box.bind(minimum_height=list_box.setter("height"))
+        popup = None
+
+        def _select_backup(uri: str) -> None:
+            nonlocal popup
+            if popup:
+                popup.dismiss()
+            self._preview_import_from_path(uri)
+
+        for entry in entries[:25]:
+            label = entry["name"]
+            last_modified = entry.get("last_modified") or 0
+            if last_modified:
+                stamp = datetime.fromtimestamp(last_modified / 1000.0).strftime("%Y-%m-%d %H:%M")
+                label = f"{label}\n{stamp}"
+            uri = entry["uri"]
+            btn = Button(text=label, size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT * 1.2),
+                         on_release=lambda _btn, u=uri: _select_backup(u))
+            list_box.add_widget(btn)
+
+        box.add_widget(list_box)
+
+        def choose_folder(_):
+            popup.dismiss()
+            self._android_choose_backup_folder("import")
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Ordner wechseln", on_release=choose_folder))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.8))
+        popup.open()
+
+    def _offer_android_export_fallback(self, pending_path: str | None, exc: Exception | None = None) -> None:
+        try:
+            data, filename = self._android_export_bytes_from_state(pending_path)
+        except Exception as export_exc:
+            self._log_error("backup export fallback failed", export_exc)
+            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {export_exc}"),
+                          size_hint=(0.8, 0.3)).open()
+            return
+
+        message = "Export fehlgeschlagen. Fallback wählen."
+        if exc:
+            message = f"Export fehlgeschlagen: {exc}\nFallback wählen."
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(message))
+
+        def do_tree(_):
+            popup.dismiss()
+            tree_uri = self._get_backup_tree_uri()
+            if tree_uri:
+                try:
+                    self._android_export_to_tree_uri(tree_uri, data, filename)
+                except Exception as tree_exc:
+                    self._log_error("tree export failed", tree_exc)
+                    self._android_choose_backup_folder("export", data, filename)
+            else:
+                self._android_choose_backup_folder("export", data, filename)
+
+        def do_downloads(_):
+            popup.dismiss()
+            try:
+                self._android_export_to_downloads(data, filename)
+            except Exception as downloads_exc:
+                self._log_error("downloads export failed", downloads_exc)
+                _styled_popup(title="Datenbank Export",
+                              content=Label(text=f"Downloads-Fehler: {downloads_exc}"),
+                              size_hint=(0.8, 0.3)).open()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Backup-Ordner", on_release=do_tree))
+        btn_row.add_widget(Button(text="Downloads", on_release=do_downloads))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Export", content=_make_scrollable(box), size_hint=(0.9, 0.6))
+        popup.open()
+
+    def _offer_android_import_fallback(self, message: str) -> None:
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label(message))
+
+        def do_tree(_):
+            popup.dismiss()
+            tree_uri = self._get_backup_tree_uri()
+            if tree_uri:
+                try:
+                    self._android_show_tree_import_picker(tree_uri)
+                except Exception as tree_exc:
+                    self._log_error("tree import failed", tree_exc)
+                    self._android_choose_backup_folder("import")
+            else:
+                self._android_choose_backup_folder("import")
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Backup-Ordner", on_release=do_tree))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Datenbank Import", content=_make_scrollable(box), size_hint=(0.9, 0.5))
+        popup.open()
 
     def _handle_android_export_result(self, result_code, data) -> None:
         pending_path = self._android_export_pending_path
@@ -1204,7 +1576,7 @@ class JonMemApp(App):
             Activity = autoclass("android.app.Activity")
             Intent = autoclass("android.content.Intent")
             if result_code != Activity.RESULT_OK or data is None:
-                _styled_popup(title="Datenbank Export", content=Label(text="Export abgebrochen."), size_hint=(0.7, 0.3)).open()
+                self._offer_android_export_fallback(pending_path, RuntimeError("Export abgebrochen"))
                 return
             uri = data.getData()
             if uri is None:
@@ -1223,7 +1595,7 @@ class JonMemApp(App):
             _styled_popup(title="Datenbank Export", content=Label(text="Export erfolgreich."), size_hint=(0.7, 0.3)).open()
         except Exception as exc:
             self._log_error("android export failed", exc)
-            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+            self._offer_android_export_fallback(pending_path, exc)
 
     def _handle_android_import_result(self, result_code, data) -> None:
         self._android_import_pending = False
@@ -1232,7 +1604,7 @@ class JonMemApp(App):
             Activity = autoclass("android.app.Activity")
             Intent = autoclass("android.content.Intent")
             if result_code != Activity.RESULT_OK or data is None:
-                _styled_popup(title="Datenbank Import", content=Label(text="Import abgebrochen."), size_hint=(0.7, 0.3)).open()
+                self._offer_android_import_fallback("Import abgebrochen.")
                 return
             uri = data.getData()
             if uri is None:
@@ -1258,7 +1630,7 @@ class JonMemApp(App):
             self._preview_import_payload(payload, source_label=uri.toString())
         except Exception as exc:
             self._log_error("android import failed", exc)
-            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+            self._offer_android_import_fallback(f"Import-Fehler: {exc}")
 
     def _android_start_activity(self, intent, request_code: int) -> None:
         from jnius import autoclass  # type: ignore
@@ -1653,13 +2025,20 @@ class JonMemApp(App):
             Intent = autoclass("android.content.Intent")
             intent = Intent(Intent.ACTION_CREATE_DOCUMENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
-            intent.setType("application/octet-stream")
+            intent.setType("text/plain")
+            intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+            )
+            self._android_apply_mime_types(intent)
+            self._android_apply_initial_uri(intent)
             intent.putExtra(Intent.EXTRA_TITLE, filename)
             self._android_export_pending_path = path
             self._android_start_activity(intent, ANDROID_EXPORT_REQUEST)
         except Exception as exc:
             self._log_error("android export start failed", exc)
-            _styled_popup(title="Datenbank Export", content=Label(text=f"Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+            self._offer_android_export_fallback(None, exc)
 
     def _export_backup_choose_dir(self) -> None:
         try:
@@ -1881,13 +2260,17 @@ class JonMemApp(App):
             intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
             intent.addCategory(Intent.CATEGORY_OPENABLE)
             intent.setType("*/*")
-            mime_types = ["application/octet-stream", "application/x-yaml", "text/yaml", "application/yaml", "text/plain"]
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, mime_types)
+            intent.addFlags(
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+            )
+            self._android_apply_mime_types(intent)
+            self._android_apply_initial_uri(intent)
             self._android_import_pending = True
             self._android_start_activity(intent, ANDROID_IMPORT_REQUEST)
         except Exception as exc:
             self._log_error("android import start failed", exc)
-            _styled_popup(title="Datenbank Import", content=Label(text=f"Import-Fehler: {exc}"), size_hint=(0.8, 0.3)).open()
+            self._offer_android_import_fallback(f"Import-Fehler: {exc}")
 
     def _build_backup_payload(self) -> dict:
         return backup_io.build_backup_payload(
