@@ -53,7 +53,7 @@ try:
 except Exception:
     notification = None
 
-__version__ = "0.7"
+__version__ = "0.8"
 
 
 IS_ANDROID = (kivy_platform == "android")
@@ -1074,6 +1074,8 @@ class JonMemApp(App):
         self._intro_queue = []
         self._session_log_meta = {}
         self._session_log_entries = []
+        self._displayed_item_id = None
+        self._displayed_prompt_text = ""
 
         self.sm = ScreenManager()
         self.screen_menu = MenuScreen(self, name="menu")
@@ -1097,6 +1099,8 @@ class JonMemApp(App):
     def _on_window_focus(self, _window, focused: bool) -> None:
         if focused:
             self._schedule_redraw(0.05)
+            if getattr(self, "sm", None) and self.sm.current == "train":
+                Clock.schedule_once(lambda *_: self.update_training_view(), 0.05)
 
     def _schedule_redraw(self, delay: float = 0.1) -> None:
         def _apply(_dt):
@@ -2801,13 +2805,18 @@ class JonMemApp(App):
 
     def update_training_view(self):
         if self.sm.current != "train":
+            self._displayed_item_id = None
+            self._displayed_prompt_text = ""
             return
         mins = max(0, self.time_left) // 60
         secs = max(0, self.time_left) % 60
         self.screen_train.timer_label.text = f"{mins:02d}:{secs:02d}"
         if self.session_index < len(self.session_items):
             item = self.session_items[self.session_index]
-            self.screen_train.prompt_label.text = item.get("prompt", "")
+            prompt_text = item.get("prompt", "")
+            self.screen_train.prompt_label.text = prompt_text
+            self._displayed_item_id = item.get("id")
+            self._displayed_prompt_text = prompt_text
             level = int(item.get("stage", 1) or 1)
             topic_name = self.get_topic_name(item.get("topic"), self.session_lang)
             self.screen_train.category_label.text = f"Kategorie: {topic_name or '-'}"
@@ -2815,6 +2824,8 @@ class JonMemApp(App):
             self.screen_train._card_color.rgba = _level_bg_color(level)
         else:
             self.screen_train.prompt_label.text = ""
+            self._displayed_item_id = None
+            self._displayed_prompt_text = ""
             self.screen_train.category_label.text = "Kategorie: -"
             self.screen_train.level_label.text = "Level 1"
             self.screen_train._card_color.rgba = CARD_BG
@@ -2832,6 +2843,23 @@ class JonMemApp(App):
         if self.session_index >= len(self.session_items):
             return
         item = self.session_items[self.session_index]
+        displayed_id = self._displayed_item_id
+        expected_id = item.get("id")
+        displayed_prompt = self._displayed_prompt_text or self.screen_train.prompt_label.text
+        expected_prompt = item.get("prompt", "")
+        if displayed_id != expected_id or displayed_prompt != expected_prompt:
+            self._log_error(
+                "submit guard mismatch: "
+                f"index={self.session_index} "
+                f"displayed_id={displayed_id} "
+                f"expected_id={expected_id} "
+                f"displayed_prompt={displayed_prompt!r} "
+                f"expected_prompt={expected_prompt!r}"
+            )
+            self.screen_train.answer_input.text = ""
+            self.screen_train.feedback_label.text = "Frage wurde aktualisiert, bitte erneut antworten."
+            self.update_training_view()
+            return
         expected = item.get("answer", "")
         if self.session_mode == "exam":
             correct = training.strict_match(text, expected)
@@ -3005,13 +3033,21 @@ class JonMemApp(App):
         for line in hint_lines:
             layout.add_widget(Label(text=line))
 
-        def _resume(_):
-            popup.dismiss()
+        resumed = {"done": False}
+
+        def _resume_once(*_):
+            if resumed["done"]:
+                return
+            resumed["done"] = True
             self._start_timer()
             self.update_training_view()
 
-        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_resume))
+        def _close(_):
+            popup.dismiss()
+
+        layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_close))
         popup = _styled_popup(title="Fast richtig....", content=layout, size_hint=(0.8, 0.4))
+        popup.bind(on_dismiss=_resume_once)
         popup.open()
 
     def _show_new_card_popup(self, item: dict, *, resume_timer: bool) -> None:
@@ -3031,14 +3067,22 @@ class JonMemApp(App):
         if hint_en:
             layout.add_widget(Label(text=f"Eselsbrücke ZS → DE: {hint_en}"))
 
-        def _close(_):
-            popup.dismiss()
+        resumed = {"done": False}
+
+        def _resume_once(*_):
+            if resumed["done"]:
+                return
+            resumed["done"] = True
             if resume_timer:
                 self._start_timer()
-                self.update_training_view()
+            self.update_training_view()
+
+        def _close(_):
+            popup.dismiss()
 
         layout.add_widget(Button(text="OK", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), on_release=_close))
         popup = _styled_popup(title="Neue Karte!", content=layout, size_hint=(0.9, 0.7))
+        popup.bind(on_dismiss=_resume_once)
         popup.open()
 
     def _show_next_intro_card(self) -> None:
