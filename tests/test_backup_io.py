@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pytest
 
 import backup_io
@@ -87,3 +89,29 @@ def test_rollback_restore_after_failed_persist(tmp_path):
     assert restored["progress"] == old_payload["progress"]
     assert restored["training_log"] == old_payload["training_log"]
     assert restored["exam_log"] == old_payload["exam_log"]
+
+
+def test_auto_backup_filename_roundtrip():
+    ts = datetime(2026, 3, 3, 12, 30, 45)
+    name = backup_io.make_auto_backup_filename("review", timestamp=ts)
+    info = backup_io.parse_auto_backup_filename(name)
+    assert info["mode"] == "review"
+    assert info["timestamp"] == ts
+
+    legacy = f"auto_{ts.strftime(backup_io.AUTO_BACKUP_TIMESTAMP_FORMAT)}{backup_io.BACKUP_EXT}"
+    legacy_info = backup_io.parse_auto_backup_filename(legacy)
+    assert legacy_info["mode"] == "session"
+    assert legacy_info["timestamp"] == ts
+
+
+def test_list_auto_backups_sorted(tmp_path):
+    ts_old = datetime(2026, 3, 3, 10, 0, 0)
+    ts_new = datetime(2026, 3, 3, 11, 0, 0)
+    name_old = backup_io.make_auto_backup_filename("introduce", timestamp=ts_old)
+    name_new = backup_io.make_auto_backup_filename("exam", timestamp=ts_new)
+
+    (tmp_path / name_old).write_text("x", encoding="utf-8")
+    (tmp_path / name_new).write_text("x", encoding="utf-8")
+
+    entries = backup_io.list_auto_backups(str(tmp_path))
+    assert [e["filename"] for e in entries] == [name_new, name_old]

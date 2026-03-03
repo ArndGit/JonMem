@@ -88,6 +88,8 @@ APP_FONT_NAME = None
 
 SUPPORT_URL = "https://www.paypal.com/donate/?hosted_button_id=PND6Y8CGNZVW6"
 
+_JSON_LOAD_ERRORS = []
+
 BASE_INPUT_HEIGHT = 72
 BASE_BUTTON_HEIGHT = 64
 BASE_INPUT_FONT_SIZE = 26
@@ -277,12 +279,27 @@ def _load_yaml_bytes(raw: bytes) -> dict:
 def _load_json(path: str, default):
     if not os.path.exists(path):
         return default
-    with open(path, "r", encoding="utf-8", errors="replace") as handle:
-        return json.load(handle)
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            return json.load(handle)
+    except json.JSONDecodeError as exc:
+        _JSON_LOAD_ERRORS.append({"path": path, "error": str(exc)})
+        return default
+    except Exception as exc:
+        _JSON_LOAD_ERRORS.append({"path": path, "error": str(exc)})
+        return default
 
 def _save_json(path: str, data) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
+
+
+def _take_json_load_errors() -> list[dict]:
+    if not _JSON_LOAD_ERRORS:
+        return []
+    errors = list(_JSON_LOAD_ERRORS)
+    _JSON_LOAD_ERRORS.clear()
+    return errors
 
 
 def _slugify(text: str) -> str:
@@ -994,6 +1011,7 @@ class JonMemApp(App):
         self._android_tree_pending_action = None
         self._android_tree_pending_bytes = None
         self._android_tree_pending_filename = None
+        self._pending_corrupt_json = []
         if os.path.exists(FONT_PATH):
             LabelBase.register(name="DejaVuSans", fn_regular=FONT_PATH)
             APP_FONT_NAME = "DejaVuSans"
@@ -1039,6 +1057,7 @@ class JonMemApp(App):
             "review_topic_filter_enabled": {},
             "backup_tree_uri": "",
         })
+        self._pending_corrupt_json = _take_json_load_errors()
         if not IS_ANDROID and not IS_IOS:
             self._init_desktop_debug_progress()
 
@@ -1093,6 +1112,10 @@ class JonMemApp(App):
         if IS_ANDROID:
             self._ensure_notification_permission()
             self._ensure_notification_channel()
+        if self._pending_corrupt_json:
+            pending = list(self._pending_corrupt_json)
+            self._pending_corrupt_json = []
+            Clock.schedule_once(lambda *_: self._offer_auto_backup_restore(pending), 0.1)
 
     def _on_window_focus(self, _window, focused: bool) -> None:
         if focused:
@@ -1963,6 +1986,8 @@ class JonMemApp(App):
                                  on_release=lambda *_: self._export_backup()))
         layout.add_widget(Button(text="Datenbank Import", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._import_backup_prompt()))
+        layout.add_widget(Button(text="Automatische Backups", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
+                                 on_release=lambda *_: self._show_auto_backup_browser()))
         layout.add_widget(Button(text="Debug report", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
                                  on_release=lambda *_: self._show_debug_report()))
         layout.add_widget(Button(text="Schließen", size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT),
@@ -1984,6 +2009,142 @@ class JonMemApp(App):
     def _open_support(self) -> None:
         import webbrowser
         webbrowser.open(SUPPORT_URL)
+
+    def _offer_auto_backup_restore(self, errors: list[dict]) -> None:
+        if not errors:
+            return
+        names = []
+        for entry in errors:
+            path = entry.get("path")
+            if path:
+                names.append(os.path.basename(path))
+        if names:
+            names = sorted(set(names))
+            text = "Beschädigte Daten gefunden:\n" + "\n".join(names)
+        else:
+            text = "Beschädigte Daten gefunden."
+        text += "\nBackup wiederherstellen?"
+        self._show_auto_backup_browser(alert_text=text, allow_clear=False)
+
+    def _format_auto_backup_label(self, entry: dict) -> str:
+        timestamp = entry.get("timestamp")
+        if isinstance(timestamp, datetime):
+            ts_text = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            ts_text = "Unbekannt"
+        mode = entry.get("mode", "session")
+        mode_labels = {
+            "introduce": "Einführen",
+            "review": "Wiederholen",
+            "exam": "Prüfung",
+        }
+        mode_text = mode_labels.get(mode, str(mode))
+        return f"{ts_text} | {mode_text}"
+
+    def _show_auto_backup_browser(self, *, alert_text: str | None = None, allow_clear: bool = True) -> None:
+        backups = backup_io.list_auto_backups(self.backup_dir)
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        if alert_text:
+            box.add_widget(_styled_label(alert_text))
+
+        if not backups:
+            box.add_widget(_styled_label("Keine automatischen Backups vorhanden."))
+        else:
+            list_box = BoxLayout(orientation="vertical", spacing=_ui(6), size_hint_y=None)
+            list_box.bind(minimum_height=list_box.setter("height"))
+
+            def _select(path: str) -> None:
+                popup.dismiss()
+                self._preview_import_from_path(path)
+
+            for entry in backups:
+                label = self._format_auto_backup_label(entry)
+                path = entry.get("path")
+                if not path:
+                    continue
+                list_box.add_widget(Button(
+                    text=label,
+                    size_hint_y=None,
+                    height=_ui(BASE_BUTTON_HEIGHT),
+                    on_release=lambda _btn, p=path: _select(p),
+                ))
+            box.add_widget(_make_scrollable(list_box))
+
+        def _ask_clear(_):
+            popup.dismiss()
+            self._prompt_clear_old_backups()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        if allow_clear:
+            btn_row.add_widget(Button(text="Alte Backups löschen", on_release=_ask_clear))
+        btn_row.add_widget(Button(text="Schließen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Automatische Backups", content=box, size_hint=(0.9, 0.8))
+        popup.open()
+
+    def _prompt_clear_old_backups(self) -> None:
+        box = BoxLayout(orientation="vertical", spacing=_ui(6), padding=_ui(8))
+        box.add_widget(_styled_label("Wie viele der neuesten Backups sollen behalten werden?"))
+        keep_input = _styled_text_input(multiline=False, text="20")
+        box.add_widget(keep_input)
+
+        def do_clear(_):
+            popup.dismiss()
+            try:
+                keep = int((keep_input.text or "").strip())
+            except Exception:
+                keep = 20
+            removed = self._prune_auto_backups(max(0, keep))
+            _styled_popup(
+                title="Backups",
+                content=Label(text=f"{removed} Backups gelöscht."),
+                size_hint=(0.7, 0.3),
+            ).open()
+
+        btn_row = BoxLayout(size_hint_y=None, height=_ui(BASE_BUTTON_HEIGHT), spacing=_ui(8))
+        btn_row.add_widget(Button(text="Löschen", on_release=do_clear))
+        btn_row.add_widget(Button(text="Abbrechen", on_release=lambda *_: popup.dismiss()))
+        box.add_widget(btn_row)
+        popup = _styled_popup(title="Backups aufräumen", content=_make_scrollable(box), size_hint=(0.9, 0.5))
+        popup.open()
+
+    def _prune_auto_backups(self, keep: int) -> int:
+        removed = 0
+        backups = backup_io.list_auto_backups(self.backup_dir)
+        for entry in backups[keep:]:
+            path = entry.get("path")
+            if not path:
+                continue
+            try:
+                os.remove(path)
+                removed += 1
+            except Exception as exc:
+                self._log_error("auto backup delete failed", exc)
+        return removed
+
+    def _create_auto_backup(self, mode: str) -> None:
+        try:
+            payload = self._build_backup_payload()
+            meta = payload.setdefault("meta", {})
+            meta["auto"] = True
+            meta["mode"] = mode or "session"
+            filename = backup_io.make_auto_backup_filename(mode or "session")
+            path = self._next_auto_backup_path(filename)
+            backup_io.persist_payload_to_file(path, payload)
+        except Exception as exc:
+            self._log_error("auto backup failed", exc)
+
+    def _next_auto_backup_path(self, filename: str) -> str:
+        path = os.path.join(self.backup_dir, filename)
+        if not os.path.exists(path):
+            return path
+        base, ext = os.path.splitext(filename)
+        counter = 2
+        while True:
+            candidate = os.path.join(self.backup_dir, f"{base}_{counter}{ext}")
+            if not os.path.exists(candidate):
+                return candidate
+            counter += 1
 
     def _export_backup(self) -> None:
         if IS_ANDROID:
@@ -3208,6 +3369,7 @@ class JonMemApp(App):
         else:
             _styled_popup(title="Training", content=Label(text=summary), size_hint=(0.6, 0.4)).open()
         self._finalize_session_log(cancelled=False)
+        self._create_auto_backup(self.session_mode or "session")
         self.sm.current = "menu"
 
     def show_session_pyramid(self) -> None:

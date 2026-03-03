@@ -11,6 +11,66 @@ except Exception:
 
 BACKUP_EXT = ".jonmem"
 ALLOWED_BACKUP_EXTS = (BACKUP_EXT, ".yaml", ".yml")
+AUTO_BACKUP_PREFIX = "auto_"
+AUTO_BACKUP_TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
+
+
+def _safe_backup_mode(mode: str) -> str:
+    cleaned = "".join(ch for ch in (mode or "").lower() if ch.isalnum() or ch in ("_", "-"))
+    cleaned = cleaned.strip("_-")
+    return cleaned or "session"
+
+
+def make_auto_backup_filename(mode: str, *, timestamp: datetime | None = None) -> str:
+    safe_mode = _safe_backup_mode(mode)
+    ts = (timestamp or datetime.now()).strftime(AUTO_BACKUP_TIMESTAMP_FORMAT)
+    return f"{AUTO_BACKUP_PREFIX}{safe_mode}_{ts}{BACKUP_EXT}"
+
+
+def parse_auto_backup_filename(filename: str) -> dict | None:
+    if not isinstance(filename, str) or not filename:
+        return None
+    lower = filename.lower()
+    ext = None
+    for candidate in ALLOWED_BACKUP_EXTS:
+        if lower.endswith(candidate):
+            ext = filename[-len(candidate):]
+            base = filename[:-len(candidate)]
+            break
+    if ext is None:
+        return None
+    if not base.lower().startswith(AUTO_BACKUP_PREFIX):
+        return None
+    remainder = base[len(AUTO_BACKUP_PREFIX):]
+    if not remainder:
+        return None
+    if "_" in remainder:
+        parts = remainder.split("_")
+        timestamp_str = parts[-1]
+        mode = "_".join(parts[:-1]) or "session"
+    else:
+        mode = "session"
+        timestamp_str = remainder
+    try:
+        timestamp = datetime.strptime(timestamp_str, AUTO_BACKUP_TIMESTAMP_FORMAT)
+    except Exception:
+        return None
+    return {"mode": mode, "timestamp": timestamp, "ext": ext, "filename": filename}
+
+
+def list_auto_backups(dir_path: str) -> list[dict]:
+    if not dir_path or not os.path.isdir(dir_path):
+        return []
+    entries = []
+    for name in os.listdir(dir_path):
+        info = parse_auto_backup_filename(name)
+        if not info:
+            continue
+        info = dict(info)
+        info["path"] = os.path.join(dir_path, name)
+        entries.append(info)
+    entries.sort(key=lambda item: item.get("timestamp") or datetime.min, reverse=True)
+    return entries
 
 
 def ensure_backup_extension(path: str) -> str:
