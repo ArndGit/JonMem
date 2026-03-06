@@ -44,13 +44,17 @@ def parse_auto_backup_filename(filename: str) -> dict | None:
     remainder = base[len(AUTO_BACKUP_PREFIX):]
     if not remainder:
         return None
-    if "_" in remainder:
-        parts = remainder.split("_")
-        timestamp_str = parts[-1]
-        mode = "_".join(parts[:-1]) or "session"
+    ts_len = len(datetime(2000, 1, 1, 0, 0, 0).strftime(AUTO_BACKUP_TIMESTAMP_FORMAT))
+    if len(remainder) < ts_len:
+        return None
+    timestamp_str = remainder[-ts_len:]
+    mode_part = remainder[:-ts_len]
+    if mode_part:
+        if not mode_part.endswith("_"):
+            return None
+        mode = mode_part[:-1] or "session"
     else:
         mode = "session"
-        timestamp_str = remainder
     try:
         timestamp = datetime.strptime(timestamp_str, AUTO_BACKUP_TIMESTAMP_FORMAT)
     except Exception:
